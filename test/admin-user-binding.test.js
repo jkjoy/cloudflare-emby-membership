@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { getUsersAdmin } from '../src/db.js';
 
 describe('admin user Emby binding status', () => {
-  it('returns normalized Emby binding fields for admin user list', () => {
+  it('returns normalized Emby binding fields for admin user list', async () => {
     const db = {
       prepare(sql) {
         expect(sql).toContain('emby_user_id');
@@ -24,7 +24,7 @@ describe('admin user Emby binding status', () => {
       },
     };
 
-    const result = getUsersAdmin(db, { limit: 50, offset: 0 });
+    const result = await getUsersAdmin(db, { limit: 50, offset: 0 });
 
     expect(result.results[0]).toMatchObject({
       embyUsername: 'bound_emby',

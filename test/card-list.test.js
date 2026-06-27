@@ -36,10 +36,10 @@ function createDbWithSqlCapture() {
 }
 
 describe('admin card list', () => {
-  it('returns card creator, used user, and created time fields ready for admin UI', () => {
+  it('returns card creator, used user, and created time fields ready for admin UI', async () => {
     const db = createDbWithSqlCapture();
 
-    const result = getCards(db, { status: null, limit: 50, offset: 0 });
+    const result = await getCards(db, { status: null, limit: 50, offset: 0 });
 
     expect(db.state.sql).toContain('LEFT JOIN users used_user');
     expect(db.state.sql).toContain('LEFT JOIN users created_user');

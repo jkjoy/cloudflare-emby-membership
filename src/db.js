@@ -67,7 +67,7 @@ export async function createCard(db, { code, days, createdBy, batchId = null }) 
   return result.meta?.changes > 0;
 }
 
-export function getCards(db, { status, limit = 50, offset = 0 }) {
+export async function getCards(db, { status, limit = 50, offset = 0 }) {
   let sql = `
     SELECT
       c.id,
@@ -92,7 +92,7 @@ export function getCards(db, { status, limit = 50, offset = 0 }) {
   }
   sql += ' ORDER BY c.created_at DESC LIMIT ? OFFSET ?';
   params.push(limit, offset);
-  const result = db.prepare(sql).bind(...params).all();
+  const result = await db.prepare(sql).bind(...params).all();
   return {
     ...result,
     results: (result.results || []).map(function(card) {
@@ -109,8 +109,8 @@ export function getCards(db, { status, limit = 50, offset = 0 }) {
   };
 }
 
-export function getUsersAdmin(db, { limit = 50, offset = 0 }) {
-  const result = db.prepare(
+export async function getUsersAdmin(db, { limit = 50, offset = 0 }) {
+  const result = await db.prepare(
     'SELECT id, username, email, emby_username, emby_user_id, role, status, created_at FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?'
   ).bind(limit, offset).all();
   return {
