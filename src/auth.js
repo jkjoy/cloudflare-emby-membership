@@ -1,0 +1,75 @@
+// src/auth.js — 注册/登录/登出/用户信息
+import { json, hashPassword, generateSalt, parseBody } from './utils.js';
+import { createSession, destroySession } from './middleware.js';
+import { getUserByUsername, createUser, getUserWithMembership } from './db.js';
+
+export async function handleRegister(request, env) {
+  const { username, password, email } = await parseBody(request);
+  if (!username || !password || username.length < 3 || password.length < 6) {
+    return json({ error: 'invalid_input', message: '用户名至少3位，密码至少6位' }, 400);
+  }
+
+  const existing = await getUserByUsername(env.DB, username);
+  if (existing) {
+    return json({ error: 'duplicate', message: '用户名已存在' }, 409);
+  }
+
+  const salt = generateSalt();
+  const passwordHash = await hashPassword(password, salt);
+  const success = await createUser(env.DB, { username, password_hash: `${salt}:${passwordHash}`, email });
+  if (!success) {
+    return json({ error: 'db_error', message: '注册失败' }, 500);
+  }
+
+  return json({ ok: true, message: '注册成功' });
+}
+
+export async function handleLogin(request, env) {
+  const { username, password } = await parseBody(request);
+  if (!username || !password) {
+    return json({ error: 'invalid_input', message: '请输入用户名和密码' }, 400);
+  }
+
+  const user = await getUserByUsername(env.DB, username);
+  if (!user) {
+    return json({ error: 'auth_failed', message: '用户名或密码错误' }, 401);
+  }
+
+  const [salt, storedHash] = (user.password_hash || ':').split(':');
+  const inputHash = await hashPassword(password, salt);
+  if (inputHash !== storedHash) {
+    return json({ error: 'auth_failed', message: '用户名或密码错误' }, 401);
+  }
+
+  const sessionId = await createSession(env.SESSION_KV, user.id, user.username, user.role);
+  return new Response(JSON.stringify({
+    ok: true,
+    user: { id: user.id, username: user.username, role: user.role },
+  }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': `session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${86400 * 7}`,
+    },
+  });
+}
+
+export async function handleLogout(request, env) {
+  if (request.sessionId) {
+    await destroySession(env.SESSION_KV, request.sessionId);
+  }
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': 'session=; Path=/; HttpOnly; Max-Age=0',
+    },
+  });
+}
+
+export async function handleUserInfo(request, env) {
+  const { userId } = request.session;
+  const data = await getUserWithMembership(env.DB, userId);
+  if (!data) return json({ error: 'not_found' }, 404);
+  return json({ ok: true, user: data });
+}

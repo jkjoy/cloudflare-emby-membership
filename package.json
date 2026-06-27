@@ -1,0 +1,16 @@
+{
+  "name": "emby-membership",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "migrate:create": "wrangler d1 create emby-membership-db",
+    "migrate:apply": "wrangler d1 migrations apply emby-membership-db"
+  },
+  "devDependencies": {
+    "wrangler": "^4.100.0",
+    "vitest": "^4.1.8"
+  }
+}

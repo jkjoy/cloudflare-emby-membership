@@ -1,0 +1,22 @@
+name = "emby-membership"
+main = "src/index.js"
+compatibility_date = "2026-06-27"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "emby-membership-db"
+database_id = "0692cd30-5a56-41a2-acf0-7f56cb4d02d8"
+
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = "5c00bf17213c491980ba784137fb9e55"
+
+[vars]
+SITE_TITLE = "Emby 会员中心"
+DEFAULT_DAYS = "30,90,180,365"
+
+[triggers]
+crons = ["0 2 * * *"]
+
+[assets]
+directory = "./frontend"
