@@ -54,6 +54,17 @@ export function mainMenuKeyboard(isBound = false) {
   };
 }
 
+function bindGuideText() {
+  return [
+    '绑定步骤：',
+    '1. 打开网页会员中心并登录账号。',
+    '2. 在「绑定 Telegram 机器人」里点击「生成 Telegram 绑定码」。',
+    '3. 把生成的 TG- 开头绑定码直接发送给我。',
+    '',
+    '绑定码 10 分钟有效，每个绑定码只能使用一次。',
+  ].join('\n');
+}
+
 async function sendStatus(env, chatId, userId, runtime) {
   const data = await getUserWithMembership(env.DB, userId);
   const membership = data?.activeMembership;
@@ -135,7 +146,10 @@ export async function handleTelegramWebhook(request, env, runtime = globalThis) 
     const binding = env.DB && callback.from ? await getTelegramBindingByTelegramUser(env.DB, callback.from.id) : null;
     if (!binding) {
       await answerCallback(env, callback.id, runtime);
-      await sendTelegramMessage(env, chat.id, '请先绑定账号：在网页会员中心生成 Telegram 绑定码，然后发送给我。', runtime, mainMenuKeyboard(false));
+      const text = callback.data === 'bind'
+        ? bindGuideText()
+        : '请先绑定账号：在网页会员中心生成 Telegram 绑定码，然后发送给我。';
+      await sendTelegramMessage(env, chat.id, text, runtime, mainMenuKeyboard(false));
       return json({ ok: true });
     }
     await handleBoundCallback(callback, binding, env, runtime);
