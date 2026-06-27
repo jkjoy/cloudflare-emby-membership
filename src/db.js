@@ -7,6 +7,15 @@ export function getUserByUsername(db, username) {
   return db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
 }
 
+export function getUserAuthById(db, id) {
+  return db.prepare('SELECT id, username, password_hash FROM users WHERE id = ?').bind(id).first();
+}
+
+export function updateUserPassword(db, id, passwordHash) {
+  return db.prepare('UPDATE users SET password_hash = ?, updated_at = datetime(\'now\') WHERE id = ?')
+    .bind(passwordHash, id).run();
+}
+
 export async function createUser(db, { username, password_hash, email, role = 'user' }) {
   const result = await db.prepare(
     'INSERT INTO users (username, password_hash, email, role) VALUES (?, ?, ?, ?)'

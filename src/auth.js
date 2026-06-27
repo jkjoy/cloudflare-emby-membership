@@ -1,7 +1,7 @@
 // src/auth.js — 注册/登录/登出/用户信息
 import { json, hashPassword, generateSalt, parseBody } from './utils.js';
 import { createSession, destroySession } from './middleware.js';
-import { getUserByUsername, createUser, getUserWithMembership } from './db.js';
+import { getUserByUsername, createUser, getUserWithMembership, getUserAuthById, updateUserPassword } from './db.js';
 
 export async function handleRegister(request, env) {
   const { username, password, email } = await parseBody(request);
@@ -72,4 +72,30 @@ export async function handleUserInfo(request, env) {
   const data = await getUserWithMembership(env.DB, userId);
   if (!data) return json({ error: 'not_found' }, 404);
   return json({ ok: true, user: data });
+}
+
+export async function handleChangePassword(request, env) {
+  const { oldPassword, newPassword } = await parseBody(request);
+  if (!oldPassword || !newPassword || newPassword.length < 6) {
+    return json({ error: 'invalid_input', message: '请输入旧密码，新密码至少 6 位' }, 400);
+  }
+
+  const userId = request.session.userId;
+  const user = await getUserAuthById(env.DB, userId);
+  if (!user) return json({ error: 'not_found', message: '用户不存在' }, 404);
+
+  const [salt, storedHash] = (user.password_hash || ':').split(':');
+  const oldHash = await hashPassword(oldPassword, salt);
+  if (oldHash !== storedHash) {
+    return json({ error: 'auth_failed', message: '旧密码错误' }, 401);
+  }
+
+  const newSalt = generateSalt();
+  const newHash = await hashPassword(newPassword, newSalt);
+  const result = await updateUserPassword(env.DB, userId, `${newSalt}:${newHash}`);
+  if (result.meta?.changes < 1) {
+    return json({ error: 'db_error', message: '密码修改失败' }, 500);
+  }
+
+  return json({ ok: true, message: '密码修改成功' });
 }

@@ -1,7 +1,7 @@
 // src/index.js — Worker 主入口
 import { json } from './utils.js';
 import { authMiddleware } from './middleware.js';
-import { handleRegister, handleLogin, handleLogout, handleUserInfo } from './auth.js';
+import { handleRegister, handleLogin, handleLogout, handleUserInfo, handleChangePassword } from './auth.js';
 import { handleRedeem } from './card.js';
 import { handleMemberStatus } from './member.js';
 import { handleAdmin } from './admin.js';
@@ -36,6 +36,7 @@ async function handleRequest(request, env) {
 
     // === 用户信息 ===
     if (path === '/api/user/info') return handleUserInfo(request, env);
+    if (path === '/api/user/change-password' && request.method === 'POST') return handleChangePassword(request, env);
 
     // === 会员 ===
     if (path === '/api/member/status') return handleMemberStatus(request, env);

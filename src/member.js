@@ -1,12 +1,21 @@
 // src/member.js — 会员状态查询/管理
 import { json, parseBody } from './utils.js';
-import { getActiveMembership, getUserMemberships, addMembership, getUserById } from './db.js';
+import { getActiveMembership, getUserMemberships, addMembership, getUserById, getConfig } from './db.js';
+import { parseServerLines } from './emby.js';
 
 // 查看当前用户的会员状态
 export async function handleMemberStatus(request, env) {
   const userId = request.session.userId;
   const active = await getActiveMembership(env.DB, userId);
   const history = await getUserMemberships(env.DB, userId);
+  const user = await getUserById(env.DB, userId);
+  let serverLines = [];
+
+  if (user && user.emby_user_id) {
+    const linesR = await getConfig(env.DB, 'emby_server_lines');
+    const baseR = await getConfig(env.DB, 'emby_base_url');
+    serverLines = parseServerLines((linesR && linesR.value) || '', (baseR && baseR.value) || '');
+  }
 
   return json({
     ok: true,
@@ -16,6 +25,7 @@ export async function handleMemberStatus(request, env) {
       expireDate: active.expire_date,
       daysLeft: Math.max(0, Math.floor((new Date(active.expire_date + 'Z') - new Date()) / 86400000)),
     } : null,
+    serverLines,
     history: history.results,
   });
 }

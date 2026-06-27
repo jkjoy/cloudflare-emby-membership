@@ -162,6 +162,26 @@
       <div class="emby-info" id="emby-info-content"></div>
     </div>
 
+    <!-- 修改密码 -->
+    <div class="card" id="change-password-section">
+      <div class="card-title">🔐 修改登录密码</div>
+      <p style="color:#9ca3af;font-size:14px;margin-bottom:16px;">
+        修改的是会员中心登录密码，不影响 Emby 账号密码。
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>旧密码</label>
+          <input type="password" id="old-password" placeholder="请输入当前登录密码">
+        </div>
+        <div class="form-group">
+          <label>新密码</label>
+          <input type="password" id="new-password" placeholder="至少 6 位">
+        </div>
+      </div>
+      <button class="btn" id="change-password-btn">修改密码</button>
+      <div id="change-password-result" style="margin-top:12px;"></div>
+    </div>
+
     <!-- 使用记录 -->
     <div class="card" id="history-section">
       <div class="card-title">📋 使用记录</div>
@@ -180,6 +200,7 @@
 
   <script>
     var currentUser = null;
+    var latestServerLines = [];
 
     async function init() {
       try {
@@ -206,6 +227,7 @@
         var daysEl = document.getElementById('days-label');
         var vipEl = document.getElementById('vip-status');
         var iconEl = document.getElementById('vip-icon');
+        latestServerLines = data.serverLines || [];
 
         if (data.ok && data.isActive && data.activeMembership) {
           var m = data.activeMembership;
@@ -224,7 +246,7 @@
           }
           // 有会员 -> 判断是否已激活 Emby
           if (currentUser && currentUser.emby_user_id) {
-            showEmbyInfo(currentUser);
+            showEmbyInfo(currentUser, { serverLines: latestServerLines });
           } else {
             showActivateForm();
           }
@@ -323,6 +345,31 @@
 
     document.getElementById('admin-btn').addEventListener('click', function() {
       window.location.href = '/admin';
+    });
+
+    document.getElementById('change-password-btn').addEventListener('click', async function() {
+      var oldPassword = document.getElementById('old-password').value;
+      var newPassword = document.getElementById('new-password').value;
+      var resultEl = document.getElementById('change-password-result');
+      resultEl.innerHTML = '';
+      if (!oldPassword || !newPassword || newPassword.length < 6) {
+        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">请填写旧密码，新密码至少 6 位</div>';
+        return;
+      }
+      this.disabled = true;
+      this.textContent = '修改中...';
+      try {
+        var data = await API.post('/api/user/change-password', { oldPassword: oldPassword, newPassword: newPassword });
+        resultEl.innerHTML = '<div style="color:#10b981;font-size:13px;">✅ ' + (data.message || '密码修改成功') + '</div>';
+        document.getElementById('old-password').value = '';
+        document.getElementById('new-password').value = '';
+        showToast('密码修改成功', 'success');
+      } catch (e) {
+        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + e.message + '</div>';
+      } finally {
+        this.disabled = false;
+        this.textContent = '修改密码';
+      }
     });
 
     // 激活 Emby 账号
