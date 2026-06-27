@@ -230,4 +230,4 @@ npm run deploy
 
 ## 许可证
 
-本项目暂未声明许可证。如需开源发布，请先补充 `LICENSE` 文件。
+本项目基于 [MIT License](./LICENSE) 开源。
