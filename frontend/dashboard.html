@@ -150,18 +150,8 @@
     <div class="card" id="activate-section" style="display:none;">
       <div class="card-title">🚀 激活 Emby 账号</div>
       <p style="color:#9ca3af;font-size:14px;margin-bottom:16px;">
-        您已开通会员，创建 Emby 账号即可开始使用。
+        您已开通会员，点击下方按钮后系统会自动创建 Emby 账号并绑定当前会员。
       </p>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Emby 用户名</label>
-          <input type="text" id="emby-username" placeholder="登录 Emby 用的用户名">
-        </div>
-        <div class="form-group">
-          <label>Emby 密码</label>
-          <input type="password" id="emby-password" placeholder="登录 Emby 用的密码">
-        </div>
-      </div>
       <button class="btn btn-success" id="activate-btn">激活账号</button>
       <div id="activate-result" style="margin-top:12px;"></div>
     </div>
@@ -198,13 +188,9 @@
           window.location.href = '/login';
           return;
         }
-        // 管理员直接跳转管理后台
-        if (currentUser.role === 'admin') {
-          window.location.href = '/admin';
-          return;
-        }
+        // 管理员也可以停留在前台会员中心；需要进后台时手动点击按钮
         if (document.getElementById('admin-btn')) {
-          document.getElementById('admin-btn').style.display = 'none';
+          document.getElementById('admin-btn').style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
         }
         await loadMemberStatus();
       } catch (e) {
@@ -283,14 +269,30 @@
       document.getElementById('redeem-section').style.display = 'none';
     }
 
-    function showEmbyInfo(user) {
+    function renderServerLines(lines) {
+      if (!lines || !lines.length) return '<div class="info-row"><span class="info-label">服务器线路</span><span class="info-value">联系管理员获取</span></div>';
+      return lines.map(function(line) {
+        return '<div class="info-row"><span class="info-label">' + (line.name || '线路') + '</span><span class="info-value">' + (line.url || '--') + '</span></div>';
+      }).join('');
+    }
+
+    function showEmbyInfo(user, loginInfo) {
       document.getElementById('activate-section').style.display = 'none';
       document.getElementById('emby-info-section').style.display = 'block';
       document.getElementById('redeem-section').style.display = 'none';
+      var username = (loginInfo && loginInfo.username) || user.emby_username || '--';
+      var passwordHtml = loginInfo && loginInfo.password
+        ? '<div class="info-row"><span class="info-label">登录密码</span><span class="info-value">' + loginInfo.password + '</span></div>'
+        : '<div class="info-row"><span class="info-label">登录密码</span><span class="info-value">已激活后不再显示，请使用激活时保存的密码</span></div>';
+      var tip = loginInfo && loginInfo.password
+        ? '<div style="margin-top:12px;color:#fbbf24;font-size:13px;">⚠️ 密码仅本次显示，请立即复制保存。</div>'
+        : '';
       document.getElementById('emby-info-content').innerHTML =
-        '<div class="info-row"><span class="info-label">用户名</span><span class="info-value">' + (user.emby_username || '--') + '</span></div>' +
-        '<div class="info-row"><span class="info-label">服务器地址</span><span class="info-value" id="emby-server-url">联系管理员获取</span></div>' +
-        '<div class="info-row"><span class="info-label">状态</span><span class="info-value" style="color:#10b981;">已激活 ✅</span></div>';
+        '<div class="info-row"><span class="info-label">用户名</span><span class="info-value">' + username + '</span></div>' +
+        passwordHtml +
+        '<div style="color:#9ca3af;font-size:13px;margin:12px 0 6px;">服务器线路</div>' +
+        renderServerLines(loginInfo && loginInfo.serverLines) +
+        '<div class="info-row"><span class="info-label">状态</span><span class="info-value" style="color:#10b981;">已激活 ✅</span></div>' + tip;
     }
 
     // 兑换卡密
@@ -319,47 +321,28 @@
       if (e.key === 'Enter') document.getElementById('redeem-btn').click();
     });
 
+    document.getElementById('admin-btn').addEventListener('click', function() {
+      window.location.href = '/admin';
+    });
+
     // 激活 Emby 账号
     document.getElementById('activate-btn').addEventListener('click', async function() {
-      var username = document.getElementById('emby-username').value.trim();
-      var password = document.getElementById('emby-password').value;
       var resultEl = document.getElementById('activate-result');
       resultEl.innerHTML = '';
-      if (!username || !password) {
-        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">请填写用户名和密码</div>';
-        return;
-      }
-      if (username.length < 2) {
-        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">用户名至少2位</div>';
-        return;
-      }
-      if (password.length < 4) {
-        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">密码至少4位</div>';
-        return;
-      }
       this.disabled = true;
       this.textContent = '激活中...';
       try {
-        var data = await API.post('/api/emby/create-account', {
-          embyUsername: username,
-          embyPassword: password,
-        });
+        var data = await API.post('/api/emby/create-account', {});
         resultEl.innerHTML = '<div style="color:#10b981;font-size:14px;font-weight:600;">✅ ' + data.message + '</div>';
-        showToast('账号激活成功！', 'success');
-        // 刷新用户信息
+        showToast('账号激活成功！请保存登录信息', 'success');
         currentUser = await checkAuth();
-        await loadMemberStatus();
+        showEmbyInfo(currentUser || {}, data.data || {});
       } catch (e) {
         resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + e.message + '</div>';
       } finally {
         this.disabled = false;
         this.textContent = '激活账号';
       }
-    });
-
-    // 回车激活
-    document.getElementById('emby-password').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') document.getElementById('activate-btn').click();
     });
 
     // 退出登录

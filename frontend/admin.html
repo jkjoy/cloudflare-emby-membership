@@ -246,6 +246,11 @@
           <label>API Key</label>
           <input type="password" id="cfg-api-key" placeholder="请输入 Emby API Key">
         </div>
+        <div class="form-group">
+          <label>服务器线路（每行一条：名称|地址）</label>
+          <textarea id="cfg-server-lines" placeholder="主线路|https://emby.example.com
+备用线路|https://backup.example.com" style="width:100%;min-height:92px;padding:10px 14px;background:#2d2d50;border:1px solid #3d3d6b;border-radius:8px;color:#fff;font-size:14px;outline:none;resize:vertical;"></textarea>
+        </div>
         <div style="display:flex;gap:12px;">
           <button class="btn btn-outline" id="cfg-test-btn">测试连接</button>
           <button class="btn" id="cfg-save-btn">保存配置</button>
@@ -350,8 +355,8 @@
           var actionBtn = c.status === 'active' ?
             '<button class="btn btn-sm btn-danger" onclick="disableCard(' + c.id + ')">禁用</button>' : '--';
           return '<tr><td>' + c.id + '</td><td><span class="code-text">' + c.code + '</span></td><td>' +
-            c.days + ' 天</td><td>' + statusBadge + '</td><td>' + (c.usedBy || '--') + '</td><td>' +
-            (c.createdAt || '--') + '</td><td>' + actionBtn + '</td></tr>';
+            c.days + ' 天</td><td>' + statusBadge + '</td><td>' + (c.usedBy || c.used_by || '--') + '</td><td>' +
+            (c.createdAt || c.created_at || '--') + '</td><td>' + actionBtn + '</td></tr>';
         }).join('');
       } catch (e) {
         console.error('Failed to load cards', e);
@@ -493,8 +498,9 @@
       try {
         var data = await API.get('/api/admin/config');
         var cfg = data.config || data.data || {};
-        if (cfg.embyUrl) document.getElementById('cfg-emby-url').value = cfg.embyUrl;
-        if (cfg.apiKey) document.getElementById('cfg-api-key').value = cfg.apiKey;
+        if (cfg.emby_base_url || cfg.embyUrl) document.getElementById('cfg-emby-url').value = cfg.emby_base_url || cfg.embyUrl;
+        if (cfg.emby_api_key || cfg.apiKey) document.getElementById('cfg-api-key').value = cfg.emby_api_key || cfg.apiKey;
+        if (cfg.emby_server_lines) document.getElementById('cfg-server-lines').value = cfg.emby_server_lines;
         if (cfg.siteTitle) document.getElementById('cfg-site-title').value = cfg.siteTitle;
       } catch (e) {
         console.error('Failed to load config', e);
@@ -504,13 +510,14 @@
     document.getElementById('cfg-test-btn').addEventListener('click', async function() {
       var url = document.getElementById('cfg-emby-url').value.trim();
       var key = document.getElementById('cfg-api-key').value.trim();
+      var lines = document.getElementById('cfg-server-lines').value.trim();
       if (!url || !key) { showToast('请填写 Emby 地址和 API Key', 'error'); return; }
       this.disabled = true;
       this.textContent = '测试中...';
       var resultEl = document.getElementById('cfg-test-result');
       resultEl.textContent = '';
       try {
-        await API.post('/api/admin/config', { embyUrl: url, apiKey: key });
+        await API.post('/api/admin/config', { emby_base_url: url, emby_api_key: key, emby_server_lines: lines });
         resultEl.innerHTML = '<span style="color:#10b981;">&#x2705; 配置已保存（后端将自行验证连接）</span>';
         showToast('配置已保存', 'success');
       } catch (e) {
@@ -524,10 +531,11 @@
     document.getElementById('cfg-save-btn').addEventListener('click', async function() {
       var url = document.getElementById('cfg-emby-url').value.trim();
       var key = document.getElementById('cfg-api-key').value.trim();
+      var lines = document.getElementById('cfg-server-lines').value.trim();
       this.disabled = true;
       this.textContent = '保存中...';
       try {
-        await API.post('/api/admin/config', { embyUrl: url, apiKey: key });
+        await API.post('/api/admin/config', { emby_base_url: url, emby_api_key: key, emby_server_lines: lines });
         showToast('配置已保存', 'success');
       } catch (e) {
         showToast(e.message, 'error');

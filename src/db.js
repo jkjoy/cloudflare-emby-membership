@@ -59,15 +59,45 @@ export async function createCard(db, { code, days, createdBy, batchId = null }) 
 }
 
 export function getCards(db, { status, limit = 50, offset = 0 }) {
-  let sql = 'SELECT id, code, days, status, used_by, used_at, created_by, batch_id, created_at FROM activation_codes';
+  let sql = `
+    SELECT
+      c.id,
+      c.code,
+      c.days,
+      c.status,
+      c.used_by,
+      used_user.username AS used_by_username,
+      c.used_at,
+      c.created_by,
+      created_user.username AS created_by_username,
+      c.batch_id,
+      c.created_at
+    FROM activation_codes c
+    LEFT JOIN users used_user ON used_user.id = c.used_by
+    LEFT JOIN users created_user ON created_user.id = c.created_by
+  `;
   const params = [];
   if (status) {
-    sql += ' WHERE status = ?';
+    sql += ' WHERE c.status = ?';
     params.push(status);
   }
-  sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+  sql += ' ORDER BY c.created_at DESC LIMIT ? OFFSET ?';
   params.push(limit, offset);
-  return db.prepare(sql).bind(...params).all();
+  const result = db.prepare(sql).bind(...params).all();
+  return {
+    ...result,
+    results: (result.results || []).map(function(card) {
+      return {
+        ...card,
+        usedBy: card.used_by_username || (card.used_by ? String(card.used_by) : ''),
+        usedById: card.used_by,
+        usedAt: card.used_at,
+        createdBy: card.created_by_username || (card.created_by ? String(card.created_by) : ''),
+        createdById: card.created_by,
+        createdAt: card.created_at,
+      };
+    }),
+  };
 }
 
 export function getUsersAdmin(db, { limit = 50, offset = 0 }) {
