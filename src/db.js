@@ -111,7 +111,20 @@ export async function getCards(db, { status, limit = 50, offset = 0 }) {
 
 export async function getUsersAdmin(db, { limit = 50, offset = 0 }) {
   const result = await db.prepare(
-    'SELECT id, username, email, emby_username, emby_user_id, role, status, created_at FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?'
+    `SELECT
+      u.id,
+      u.username,
+      u.email,
+      u.emby_username,
+      u.emby_user_id,
+      u.role,
+      u.status,
+      u.created_at,
+      MAX(m.expire_date) AS active_membership_expire_date
+    FROM users u
+    LEFT JOIN memberships m ON m.user_id = u.id AND m.expire_date > datetime('now')
+    GROUP BY u.id, u.username, u.email, u.emby_username, u.emby_user_id, u.role, u.status, u.created_at
+    ORDER BY u.created_at DESC LIMIT ? OFFSET ?`
   ).bind(limit, offset).all();
   return {
     ...result,
@@ -122,6 +135,8 @@ export async function getUsersAdmin(db, { limit = 50, offset = 0 }) {
         embyUserId: user.emby_user_id,
         embyBind: user.emby_username || user.emby_user_id || '',
         isEmbyBound: !!user.emby_user_id,
+        activeMembership: user.active_membership_expire_date ? { expireDate: user.active_membership_expire_date } : null,
+        isMember: !!user.active_membership_expire_date,
       };
     }),
   };

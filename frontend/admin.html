@@ -430,7 +430,7 @@
           return;
         }
         tbody.innerHTML = users.map(function(u) {
-          var memberBadge = (u.activeMembership || u.isMember)
+          var memberBadge = (u.isMember || u.activeMembership)
             ? '<span class="badge badge-vip">&#x2705; 会员</span>'
             : '<span class="badge badge-novip">&#x274C; 非会员</span>';
           return '<tr onclick="toggleUserDetail(' + u.id + ', this)" style="cursor:pointer;">' +
