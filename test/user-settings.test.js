@@ -78,7 +78,7 @@ describe('user dashboard account settings', () => {
 
     expect(res.status).toBe(200);
     expect(body).toMatchObject({ ok: true });
-    expect(env.DB.state.updatedHash).toMatch(/^[0-9a-f]{32}:[0-9a-f]{64}$/);
+    expect(env.DB.state.updatedHash).toMatch(/^pbkdf2:100000:[0-9a-f]{32}:[0-9a-f]+$/);
   });
 
   it('rejects password change when old password is wrong', async () => {

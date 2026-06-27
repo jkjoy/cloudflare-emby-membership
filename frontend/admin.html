@@ -354,9 +354,9 @@
             '<span class="badge badge-disabled">已禁用</span>';
           var actionBtn = c.status === 'active' ?
             '<button class="btn btn-sm btn-danger" onclick="disableCard(' + c.id + ')">禁用</button>' : '--';
-          return '<tr><td>' + c.id + '</td><td><span class="code-text">' + c.code + '</span></td><td>' +
-            c.days + ' 天</td><td>' + statusBadge + '</td><td>' + (c.usedBy || c.used_by || '--') + '</td><td>' +
-            (c.createdAt || c.created_at || '--') + '</td><td>' + actionBtn + '</td></tr>';
+          return '<tr><td>' + c.id + '</td><td><span class="code-text">' + escapeHTML(c.code) + '</span></td><td>' +
+            c.days + ' 天</td><td>' + statusBadge + '</td><td>' + escapeHTML(c.usedBy || c.used_by || '--') + '</td><td>' +
+            escapeHTML(c.createdAt || c.created_at || '--') + '</td><td>' + actionBtn + '</td></tr>';
         }).join('');
       } catch (e) {
         console.error('Failed to load cards', e);
@@ -434,9 +434,9 @@
             ? '<span class="badge badge-vip">&#x2705; 会员</span>'
             : '<span class="badge badge-novip">&#x274C; 非会员</span>';
           return '<tr onclick="toggleUserDetail(' + u.id + ', this)" style="cursor:pointer;">' +
-            '<td>' + u.id + '</td><td>' + u.username + '</td><td>' + (u.email || '--') + '</td>' +
-            '<td>' + (u.embyBind || u.emby_username || u.emby_user_id || '未绑定') + '</td><td>' + memberBadge + '</td>' +
-            '<td>' + (u.created_at || '--') + '</td></tr>' +
+            '<td>' + u.id + '</td><td>' + escapeHTML(u.username) + '</td><td>' + escapeHTML(u.email || '--') + '</td>' +
+            '<td>' + escapeHTML(u.embyBind || u.emby_username || u.emby_user_id || '未绑定') + '</td><td>' + memberBadge + '</td>' +
+            '<td>' + escapeHTML(u.created_at || '--') + '</td></tr>' +
             '<tr class="detail-row" data-user-id="' + u.id + '"><td colspan="6"><div class="detail-inner">' +
             '<div id="user-detail-' + u.id + '"><div style="color:#9ca3af;font-size:12px;">加载中...</div></div>' +
             '<div style="display:flex;gap:8px;align-items:center;margin-top:8px;">' +
@@ -471,13 +471,13 @@
         } else {
           var html = '<table class="mini-table" style="width:100%;font-size:12px;"><thead><tr><th>日期</th><th>天数</th><th>来源</th><th>到期日</th></tr></thead><tbody>';
           history.slice(0, 10).forEach(function(h) {
-            html += '<tr><td>' + (h.createdAt || h.date || '--') + '</td><td>' + (h.days || h.addedDays || '--') + ' 天</td><td>' + (h.source || h.reason || '--') + '</td><td>' + (h.expireDate || '--') + '</td></tr>';
+            html += '<tr><td>' + escapeHTML(h.createdAt || h.date || '--') + '</td><td>' + escapeHTML(h.days || h.addedDays || '--') + ' 天</td><td>' + escapeHTML(h.source || h.reason || '--') + '</td><td>' + escapeHTML(h.expireDate || '--') + '</td></tr>';
           });
           html += '</tbody></table>';
           detailEl.innerHTML = html;
         }
       } catch (e) {
-        document.getElementById('user-detail-' + userId).innerHTML = '<div style="color:#ef4444;font-size:12px;">加载失败: ' + e.message + '</div>';
+        document.getElementById('user-detail-' + userId).innerHTML = '<div style="color:#ef4444;font-size:12px;">加载失败: ' + escapeHTML(e.message) + '</div>';
       }
     }
 
@@ -521,7 +521,7 @@
         resultEl.innerHTML = '<span style="color:#10b981;">&#x2705; 配置已保存（后端将自行验证连接）</span>';
         showToast('配置已保存', 'success');
       } catch (e) {
-        resultEl.innerHTML = '<span style="color:#ef4444;">&#x274C; 保存失败: ' + e.message + '</span>';
+        resultEl.innerHTML = '<span style="color:#ef4444;">&#x274C; 保存失败: ' + escapeHTML(e.message) + '</span>';
       } finally {
         this.disabled = false;
         this.textContent = '测试连接';

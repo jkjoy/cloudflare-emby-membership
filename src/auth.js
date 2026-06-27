@@ -1,22 +1,24 @@
 // src/auth.js — 注册/登录/登出/用户信息
-import { json, hashPassword, generateSalt, parseBody } from './utils.js';
+import { json, parseBody, createPasswordHash, verifyPasswordHash, needsPasswordRehash, securityHeaders } from './utils.js';
 import { createSession, destroySession } from './middleware.js';
 import { getUserByUsername, createUser, getUserWithMembership, getUserAuthById, updateUserPassword } from './db.js';
+import { enforceRateLimit } from './rateLimit.js';
 
 export async function handleRegister(request, env) {
   const { username, password, email } = await parseBody(request);
   if (!username || !password || username.length < 3 || password.length < 6) {
     return json({ error: 'invalid_input', message: '用户名至少3位，密码至少6位' }, 400);
   }
+  const limited = await enforceRateLimit(env, request, 'register', username.toLowerCase(), { limit: 5, ttl: 3600 });
+  if (limited) return limited;
 
   const existing = await getUserByUsername(env.DB, username);
   if (existing) {
     return json({ error: 'duplicate', message: '用户名已存在' }, 409);
   }
 
-  const salt = generateSalt();
-  const passwordHash = await hashPassword(password, salt);
-  const success = await createUser(env.DB, { username, password_hash: `${salt}:${passwordHash}`, email });
+  const passwordHash = await createPasswordHash(password);
+  const success = await createUser(env.DB, { username, password_hash: passwordHash, email });
   if (!success) {
     return json({ error: 'db_error', message: '注册失败' }, 500);
   }
@@ -29,16 +31,19 @@ export async function handleLogin(request, env) {
   if (!username || !password) {
     return json({ error: 'invalid_input', message: '请输入用户名和密码' }, 400);
   }
+  const limited = await enforceRateLimit(env, request, 'login', String(username).toLowerCase(), { limit: 5, ttl: 600 });
+  if (limited) return limited;
 
   const user = await getUserByUsername(env.DB, username);
   if (!user) {
     return json({ error: 'auth_failed', message: '用户名或密码错误' }, 401);
   }
 
-  const [salt, storedHash] = (user.password_hash || ':').split(':');
-  const inputHash = await hashPassword(password, salt);
-  if (inputHash !== storedHash) {
+  if (!(await verifyPasswordHash(password, user.password_hash))) {
     return json({ error: 'auth_failed', message: '用户名或密码错误' }, 401);
+  }
+  if (needsPasswordRehash(user.password_hash)) {
+    await updateUserPassword(env.DB, user.id, await createPasswordHash(password));
   }
 
   const sessionId = await createSession(env.SESSION_KV, user.id, user.username, user.role);
@@ -47,10 +52,10 @@ export async function handleLogin(request, env) {
     user: { id: user.id, username: user.username, role: user.role },
   }), {
     status: 200,
-    headers: {
+    headers: securityHeaders({
       'Content-Type': 'application/json',
-      'Set-Cookie': `session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${86400 * 7}`,
-    },
+      'Set-Cookie': `session=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${86400 * 7}`,
+    }),
   });
 }
 
@@ -60,10 +65,10 @@ export async function handleLogout(request, env) {
   }
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
-    headers: {
+    headers: securityHeaders({
       'Content-Type': 'application/json',
-      'Set-Cookie': 'session=; Path=/; HttpOnly; Max-Age=0',
-    },
+      'Set-Cookie': 'session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0',
+    }),
   });
 }
 
@@ -79,20 +84,18 @@ export async function handleChangePassword(request, env) {
   if (!oldPassword || !newPassword || newPassword.length < 6) {
     return json({ error: 'invalid_input', message: '请输入旧密码，新密码至少 6 位' }, 400);
   }
+  const limited = await enforceRateLimit(env, request, 'change-password', request.session.userId, { limit: 5, ttl: 600 });
+  if (limited) return limited;
 
   const userId = request.session.userId;
   const user = await getUserAuthById(env.DB, userId);
   if (!user) return json({ error: 'not_found', message: '用户不存在' }, 404);
 
-  const [salt, storedHash] = (user.password_hash || ':').split(':');
-  const oldHash = await hashPassword(oldPassword, salt);
-  if (oldHash !== storedHash) {
+  if (!(await verifyPasswordHash(oldPassword, user.password_hash))) {
     return json({ error: 'auth_failed', message: '旧密码错误' }, 401);
   }
 
-  const newSalt = generateSalt();
-  const newHash = await hashPassword(newPassword, newSalt);
-  const result = await updateUserPassword(env.DB, userId, `${newSalt}:${newHash}`);
+  const result = await updateUserPassword(env.DB, userId, await createPasswordHash(newPassword));
   if (result.meta?.changes < 1) {
     return json({ error: 'db_error', message: '密码修改失败' }, 500);
   }

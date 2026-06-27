@@ -271,7 +271,7 @@
           tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="icon">📭</div>暂无使用记录</div></td></tr>';
         } else {
           tbody.innerHTML = history.slice(0, 20).map(function(h) {
-            return '<tr><td>' + (h.created_at || '--') + '</td><td>' + h.days_added + ' 天</td><td>' + (h.source || '--') + '</td><td>' + (h.expire_date || '--') + '</td></tr>';
+            return '<tr><td>' + escapeHTML(h.created_at || '--') + '</td><td>' + h.days_added + ' 天</td><td>' + escapeHTML(h.source || '--') + '</td><td>' + escapeHTML(h.expire_date || '--') + '</td></tr>';
           }).join('');
         }
       } catch (e) {
@@ -294,7 +294,7 @@
     function renderServerLines(lines) {
       if (!lines || !lines.length) return '<div class="info-row"><span class="info-label">服务器线路</span><span class="info-value">联系管理员获取</span></div>';
       return lines.map(function(line) {
-        return '<div class="info-row"><span class="info-label">' + (line.name || '线路') + '</span><span class="info-value">' + (line.url || '--') + '</span></div>';
+        return '<div class="info-row"><span class="info-label">' + escapeHTML(line.name || '线路') + '</span><span class="info-value">' + escapeHTML(line.url || '--') + '</span></div>';
       }).join('');
     }
 
@@ -304,13 +304,13 @@
       document.getElementById('redeem-section').style.display = 'none';
       var username = (loginInfo && loginInfo.username) || user.emby_username || '--';
       var passwordHtml = loginInfo && loginInfo.password
-        ? '<div class="info-row"><span class="info-label">登录密码</span><span class="info-value">' + loginInfo.password + '</span></div>'
+        ? '<div class="info-row"><span class="info-label">登录密码</span><span class="info-value">' + escapeHTML(loginInfo.password) + '</span></div>'
         : '<div class="info-row"><span class="info-label">登录密码</span><span class="info-value">已激活后不再显示，请使用激活时保存的密码</span></div>';
       var tip = loginInfo && loginInfo.password
         ? '<div style="margin-top:12px;color:#fbbf24;font-size:13px;">⚠️ 密码仅本次显示，请立即复制保存。</div>'
         : '';
       document.getElementById('emby-info-content').innerHTML =
-        '<div class="info-row"><span class="info-label">用户名</span><span class="info-value">' + username + '</span></div>' +
+        '<div class="info-row"><span class="info-label">用户名</span><span class="info-value">' + escapeHTML(username) + '</span></div>' +
         passwordHtml +
         '<div style="color:#9ca3af;font-size:13px;margin:12px 0 6px;">服务器线路</div>' +
         renderServerLines(loginInfo && loginInfo.serverLines) +
@@ -330,10 +330,10 @@
         this.textContent = '重置中...';
         try {
           var data = await API.post('/api/emby/reset-password', {});
-          resultEl.innerHTML = '<div style="color:#10b981;font-size:13px;">✅ 新 Emby 密码：<span class="info-value">' + data.data.password + '</span><br><span style="color:#fbbf24;">仅本次显示，请立即复制保存。</span></div>';
+          resultEl.innerHTML = '<div style="color:#10b981;font-size:13px;">✅ 新 Emby 密码：<span class="info-value">' + escapeHTML(data.data.password) + '</span><br><span style="color:#fbbf24;">仅本次显示，请立即复制保存。</span></div>';
           showToast('Emby 密码已重置', 'success');
         } catch (e) {
-          resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + e.message + '</div>';
+          resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + escapeHTML(e.message) + '</div>';
         } finally {
           this.disabled = false;
           this.textContent = '重置 Emby 密码';
@@ -384,12 +384,12 @@
       this.textContent = '修改中...';
       try {
         var data = await API.post('/api/user/change-password', { oldPassword: oldPassword, newPassword: newPassword });
-        resultEl.innerHTML = '<div style="color:#10b981;font-size:13px;">✅ ' + (data.message || '密码修改成功') + '</div>';
+        resultEl.innerHTML = '<div style="color:#10b981;font-size:13px;">✅ ' + escapeHTML(data.message || '密码修改成功') + '</div>';
         document.getElementById('old-password').value = '';
         document.getElementById('new-password').value = '';
         showToast('密码修改成功', 'success');
       } catch (e) {
-        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + e.message + '</div>';
+        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + escapeHTML(e.message) + '</div>';
       } finally {
         this.disabled = false;
         this.textContent = '修改密码';
@@ -404,12 +404,12 @@
       this.textContent = '激活中...';
       try {
         var data = await API.post('/api/emby/create-account', {});
-        resultEl.innerHTML = '<div style="color:#10b981;font-size:14px;font-weight:600;">✅ ' + data.message + '</div>';
+        resultEl.innerHTML = '<div style="color:#10b981;font-size:14px;font-weight:600;">✅ ' + escapeHTML(data.message) + '</div>';
         showToast('账号激活成功！请保存登录信息', 'success');
         currentUser = await checkAuth();
         showEmbyInfo(currentUser || {}, data.data || {});
       } catch (e) {
-        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + e.message + '</div>';
+        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + escapeHTML(e.message) + '</div>';
       } finally {
         this.disabled = false;
         this.textContent = '激活账号';

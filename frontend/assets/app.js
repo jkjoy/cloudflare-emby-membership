@@ -14,6 +14,18 @@ const API = {
   post(path, body) { return this.request(path, { method: 'POST', body: JSON.stringify(body) }); },
 };
 
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, function(ch) {
+    return ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    })[ch];
+  });
+}
+
 async function loadSiteConfig() {
   try {
     const data = await API.get('/api/site/config');

@@ -1,6 +1,7 @@
 // src/card.js — 卡密生成/兑换/管理
 import { json, parseBody, generateCode } from './utils.js';
 import { getCardByCode, useCard, addMembership, createCard, getCards } from './db.js';
+import { enforceRateLimit } from './rateLimit.js';
 
 // 用户兑换卡密
 export async function handleRedeem(request, env) {
@@ -8,6 +9,8 @@ export async function handleRedeem(request, env) {
   if (!code || typeof code !== 'string') {
     return json({ error: 'invalid_input', message: '请输入卡密' }, 400);
   }
+  const limited = await enforceRateLimit(env, request, 'redeem', request.session.userId, { limit: 10, ttl: 600 });
+  if (limited) return limited;
 
   const card = await getCardByCode(env.DB, code.trim().toUpperCase());
   if (!card) {

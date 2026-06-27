@@ -1,14 +1,42 @@
 // src/emby.js — Emby API 客户端
 import { json, parseBody, generateCode } from './utils.js';
 import { getConfig, updateUserEmby, getActiveMembership } from './db.js';
+import { enforceRateLimit } from './rateLimit.js';
+
+// 获取 Emby 配置（兼容新旧配置 key）
+export function validateEmbyBaseUrl(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error('Emby 地址格式错误');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('仅支持 HTTP/HTTPS 协议');
+  }
+  const host = url.hostname.toLowerCase();
+  const privatePatterns = [
+    /^localhost$/,
+    /^127\./,
+    /^10\./,
+    /^192\.168\./,
+    /^172\.(1[6-9]|2\d|3[0-1])\./,
+    /^0\./,
+  ];
+  if (privatePatterns.some(function(pattern) { return pattern.test(host); })) {
+    throw new Error('不允许使用内网或本机地址');
+  }
+  return url.origin;
+}
 
 // 获取 Emby 配置（兼容新旧配置 key）
 async function fetchConfig(db) {
   const baseR = (await getConfig(db, 'emby_base_url')) || (await getConfig(db, 'embyUrl'));
   const keyR = (await getConfig(db, 'emby_api_key')) || (await getConfig(db, 'apiKey'));
   const linesR = (await getConfig(db, 'emby_server_lines')) || (await getConfig(db, 'serverLines'));
+  const baseUrl = (baseR && baseR.value) || '';
   return {
-    baseUrl: (baseR && baseR.value) || '',
+    baseUrl: baseUrl ? validateEmbyBaseUrl(baseUrl) : '',
     apiKey: (keyR && keyR.value) || '',
     serverLinesRaw: (linesR && linesR.value) || '',
   };
@@ -53,7 +81,7 @@ export async function handleCheckConnection(request, env) {
   let config;
   if (request.method === 'POST') {
     const body = await parseBody(request);
-    config = { baseUrl: body.baseUrl || body.embyUrl, apiKey: body.apiKey };
+    config = { baseUrl: validateEmbyBaseUrl(body.baseUrl || body.embyUrl), apiKey: body.apiKey || body.emby_api_key };
   } else {
     config = await fetchConfig(env.DB);
   }
@@ -181,6 +209,8 @@ export async function handleResetEmbyPassword(request, env) {
   }
 
   const userId = request.session.userId;
+  const limited = await enforceRateLimit(env, request, 'reset-emby-password', userId, { limit: 3, ttl: 3600 });
+  if (limited) return limited;
   const { getUserById } = await import('./db.js');
   const user = await getUserById(env.DB, userId);
   if (!user || !user.emby_user_id) {

@@ -2,6 +2,7 @@
 import { json, parseBody } from './utils.js';
 import { getConfig, setConfig, getAllConfig, getUsersAdmin, getUserWithMembership } from './db.js';
 import { handleGenerateCard, handleCardList, handleDisableCard } from './card.js';
+import { validateEmbyBaseUrl } from './emby.js';
 
 // 用户列表
 export async function handleAdminUserList(request, env) {
@@ -50,7 +51,8 @@ export async function handleAdminSetConfig(request, env) {
   const config = await parseBody(request);
   for (const [key, value] of Object.entries(config)) {
     if (typeof value === 'string' && value.trim()) {
-      await setConfig(env.DB, key, value.trim());
+      const cleaned = key === 'emby_base_url' || key === 'embyUrl' ? validateEmbyBaseUrl(value.trim()) : value.trim();
+      await setConfig(env.DB, key, cleaned);
     }
   }
   return json({ ok: true, message: '配置已保存' });
