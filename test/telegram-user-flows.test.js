@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleTelegramWebhook } from '../src/telegram.js';
 
 function createKv() {
@@ -16,7 +16,7 @@ function createDb() {
     users: [{ id: 42, username: 'sun', emby_user_id: 'emby-1', emby_username: 'sun_emby' }],
     memberships: [{ user_id: 42, expire_date: '2099-01-01 00:00:00', start_date: '2026-01-01 00:00:00', days_added: 30, source: 'card_redeem' }],
     cards: [{ id: 9, code: 'EMBY-OK', days: 30, status: 'active' }],
-    config: { emby_server_lines: '主线路|https://emby.example.com', emby_base_url: 'https://emby.example.com' },
+    config: { emby_server_lines: '主线路|https://emby.example.com', emby_base_url: 'https://emby.example.com', emby_api_key: 'test-api-key' },
   };
   return {
     state,
@@ -75,6 +75,8 @@ function runtime() {
 }
 
 describe('Telegram user flows', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it('shows membership status for a bound user', async () => {
     const rt = runtime();
     await handleTelegramWebhook(callback('status'), { DB: createDb(), SESSION_KV: createKv(), TELEGRAM_WEBHOOK_SECRET: 'secret', TELEGRAM_BOT_TOKEN: 'token' }, rt);
@@ -83,6 +85,38 @@ describe('Telegram user flows', () => {
     const msg = rt.calls.find(c => c.url.includes('sendMessage'));
     expect(msg.body.text).toContain('会员状态');
     expect(msg.body.text).toContain('2099-01-01');
+  });
+
+  it('shows Emby account info for a bound activated user', async () => {
+    const rt = runtime();
+    await handleTelegramWebhook(callback('emby_account'), { DB: createDb(), SESSION_KV: createKv(), TELEGRAM_WEBHOOK_SECRET: 'secret', TELEGRAM_BOT_TOKEN: 'token' }, rt);
+
+    const msg = rt.calls.find(c => c.url.includes('sendMessage'));
+    expect(msg.body.text).toContain('Emby 账号');
+    expect(msg.body.text).toContain('sun_emby');
+    expect(msg.body.text).toContain('已激活');
+    expect(msg.body.text).toContain('主线路');
+    expect(msg.body.text).toContain('如需新密码');
+  });
+
+  it('resets Emby password when a bound user sends forgot-password text', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url, options) => {
+      expect(url).toBe('https://emby.example.com/emby/Users/emby-1/Password');
+      expect(options.method).toBe('POST');
+      expect(options.headers['X-Emby-Token']).toBe('test-api-key');
+      const body = JSON.parse(options.body);
+      expect(body.Id).toBe('emby-1');
+      expect(body.NewPw).toMatch(/^[A-Za-z0-9]{12}$/);
+      return new Response('{}', { status: 200 });
+    }));
+    const rt = runtime();
+
+    await handleTelegramWebhook(message('忘记密码'), { DB: createDb(), SESSION_KV: createKv(), TELEGRAM_WEBHOOK_SECRET: 'secret', TELEGRAM_BOT_TOKEN: 'token' }, rt);
+
+    const msg = rt.calls.find(c => c.url.includes('sendMessage'));
+    expect(msg.body.text).toContain('新 Emby 密码');
+    expect(msg.body.text).toContain('仅本次显示');
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it('redeems an activation code through a button-driven flow', async () => {

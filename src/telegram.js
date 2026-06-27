@@ -47,9 +47,9 @@ export function mainMenuKeyboard(isBound = false) {
   }
   return {
     inline_keyboard: [
-      [{ text: '查询会员', callback_data: 'status' }, { text: '兑换卡密', callback_data: 'redeem' }],
-      [{ text: '激活 Emby', callback_data: 'activate' }, { text: '查看线路', callback_data: 'lines' }],
-      [{ text: '重置 Emby 密码', callback_data: 'reset_password' }],
+      [{ text: '查询会员', callback_data: 'status' }, { text: '查询 Emby 账号', callback_data: 'emby_account' }],
+      [{ text: '兑换卡密', callback_data: 'redeem' }, { text: '激活 Emby', callback_data: 'activate' }],
+      [{ text: '查看线路', callback_data: 'lines' }, { text: '重置 Emby 密码', callback_data: 'reset_password' }],
     ],
   };
 }
@@ -87,6 +87,28 @@ async function sendLines(env, chatId, userId, runtime) {
   await sendTelegramMessage(env, chatId, text, runtime, mainMenuKeyboard(true));
 }
 
+async function sendEmbyAccount(env, chatId, userId, runtime) {
+  const user = await getUserById(env.DB, userId);
+  if (!user?.emby_user_id) {
+    await sendTelegramMessage(env, chatId, 'Emby 账号：未激活\n请点击「激活 Emby」生成账号。', runtime, mainMenuKeyboard(true));
+    return;
+  }
+  const linesR = await getConfig(env.DB, 'emby_server_lines');
+  const baseR = await getConfig(env.DB, 'emby_base_url');
+  const lines = parseServerLines(linesR?.value || '', baseR?.value || '');
+  const lineText = lines.length
+    ? '\n服务器线路：\n' + lines.map(line => `${line.name}: ${line.url}`).join('\n')
+    : '\n服务器线路：暂无，请联系管理员。';
+  const text = [
+    'Emby 账号：已激活',
+    `用户名：${user.emby_username || user.username}`,
+    `Emby ID：${user.emby_user_id}`,
+    '密码：不会保存或回显；如需新密码，请点击「重置 Emby 密码」。',
+    lineText,
+  ].join('\n');
+  await sendTelegramMessage(env, chatId, text, runtime, mainMenuKeyboard(true));
+}
+
 async function redeemCode(env, chatId, userId, code, runtime) {
   const card = await getCardByCode(env.DB, String(code).trim().toUpperCase());
   if (!card || card.status !== 'active') {
@@ -102,10 +124,21 @@ async function redeemCode(env, chatId, userId, code, runtime) {
   await sendTelegramMessage(env, chatId, `兑换成功！会员有效期至 ${result.expire}`, runtime, mainMenuKeyboard(true));
 }
 
+async function resetEmbyPasswordForTelegram(env, chatId, userId, runtime) {
+  const request = new Request('https://telegram.local/reset-emby-password', {
+    headers: { 'CF-Connecting-IP': `telegram:${chatId}` },
+  });
+  request.session = { userId };
+  const res = await handleResetEmbyPassword(request, env);
+  const body = await res.json();
+  return sendTelegramMessage(env, chatId, body.ok ? `新 Emby 密码：${body.data.password}\n仅本次显示，请立即保存。` : (body.message || '重置失败'), runtime, mainMenuKeyboard(true));
+}
+
 async function handleBoundCallback(callback, binding, env, runtime) {
   const chatId = callback.message.chat.id;
   await answerCallback(env, callback.id, runtime);
   if (callback.data === 'status') return sendStatus(env, chatId, binding.user_id, runtime);
+  if (callback.data === 'emby_account') return sendEmbyAccount(env, chatId, binding.user_id, runtime);
   if (callback.data === 'lines') return sendLines(env, chatId, binding.user_id, runtime);
   if (callback.data === 'redeem') {
     await setState(env, chatId, callback.from.id, { action: 'redeem', userId: binding.user_id });
@@ -123,9 +156,7 @@ async function handleBoundCallback(callback, binding, env, runtime) {
     return sendTelegramMessage(env, chatId, `Emby 账号创建成功，请立即保存：\n用户名：${body.data.username}\n密码：${body.data.password}\n${lines}`, runtime, mainMenuKeyboard(true));
   }
   if (callback.data === 'reset_password') {
-    const res = await handleResetEmbyPassword({ session: { userId: binding.user_id } }, env);
-    const body = await res.json();
-    return sendTelegramMessage(env, chatId, body.ok ? `新 Emby 密码：${body.data.password}\n仅本次显示，请立即保存。` : (body.message || '重置失败'), runtime, mainMenuKeyboard(true));
+    return resetEmbyPasswordForTelegram(env, chatId, binding.user_id, runtime);
   }
   return sendTelegramMessage(env, chatId, '请选择操作。', runtime, mainMenuKeyboard(true));
 }
@@ -199,6 +230,11 @@ export async function handleTelegramWebhook(request, env, runtime = globalThis) 
 
   if (!existingBinding) {
     await sendTelegramMessage(env, chat.id, '请先绑定账号：在网页会员中心生成 Telegram 绑定码，然后发送给我。', runtime, mainMenuKeyboard(false));
+    return json({ ok: true });
+  }
+
+  if (/^(忘记密码|重置密码|重置Emby密码|重置 Emby 密码|reset)$/i.test(text)) {
+    await resetEmbyPasswordForTelegram(env, chat.id, existingBinding.user_id, runtime);
     return json({ ok: true });
   }
 
