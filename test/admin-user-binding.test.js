@@ -39,7 +39,7 @@ describe('admin user Emby binding status', () => {
   });
 
   it('admin UI reads real Emby binding fields instead of missing aliases', () => {
-    const html = readFileSync('./frontend/admin.html', 'utf-8');
+    const html = readFileSync('./frontend/admin.html', 'utf-8') + readFileSync('./frontend/assets/admin.js', 'utf-8');
 
     expect(html).toContain('u.embyBind || u.emby_username || u.emby_user_id');
     expect(html).not.toContain('u.embyId || u.embyBind');

@@ -36,7 +36,7 @@ describe('admin user membership status', () => {
   });
 
   it('admin UI reads normalized isMember field for membership badge', () => {
-    const html = readFileSync('./frontend/admin.html', 'utf-8');
+    const html = readFileSync('./frontend/admin.html', 'utf-8') + readFileSync('./frontend/assets/admin.js', 'utf-8');
 
     expect(html).toContain('u.isMember || u.activeMembership');
   });

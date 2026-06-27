@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 describe('user settings UI', () => {
   it('shows a change-password panel in user dashboard', () => {
-    const html = readFileSync('./frontend/dashboard.html', 'utf-8');
+    const html = readFileSync('./frontend/dashboard.html', 'utf-8') + readFileSync('./frontend/assets/dashboard.js', 'utf-8');
 
     expect(html).toContain('id="change-password-section"');
     expect(html).toContain('id="old-password"');
@@ -13,7 +13,7 @@ describe('user settings UI', () => {
   });
 
   it('uses member status serverLines so activated users always see server lines after refresh', () => {
-    const html = readFileSync('./frontend/dashboard.html', 'utf-8');
+    const html = readFileSync('./frontend/dashboard.html', 'utf-8') + readFileSync('./frontend/assets/dashboard.js', 'utf-8');
 
     expect(html).toContain('var latestServerLines = []');
     expect(html).toContain('latestServerLines = data.serverLines || []');

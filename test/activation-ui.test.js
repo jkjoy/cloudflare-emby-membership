@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 describe('activation UI', () => {
   it('activates account from a single click without asking users to type Emby credentials', () => {
-    const html = readFileSync('./frontend/dashboard.html', 'utf-8');
+    const html = readFileSync('./frontend/dashboard.html', 'utf-8') + readFileSync('./frontend/assets/dashboard.js', 'utf-8');
 
     expect(html).toContain('id="activate-btn"');
     expect(html).not.toContain('id="emby-username"');
@@ -14,7 +14,7 @@ describe('activation UI', () => {
   });
 
   it('admin config can save server lines shown after activation', () => {
-    const html = readFileSync('./frontend/admin.html', 'utf-8');
+    const html = readFileSync('./frontend/admin.html', 'utf-8') + readFileSync('./frontend/assets/admin.js', 'utf-8');
 
     expect(html).toContain('id="cfg-server-lines"');
     expect(html).toContain('emby_server_lines');

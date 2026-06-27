@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 describe('Emby password reset UI', () => {
   it('shows reset button for activated Emby account and displays returned password once', () => {
-    const html = readFileSync('./frontend/dashboard.html', 'utf-8');
+    const html = readFileSync('./frontend/dashboard.html', 'utf-8') + readFileSync('./frontend/assets/dashboard.js', 'utf-8');
 
     expect(html).toContain('id="reset-emby-password-btn"');
     expect(html).toContain('id="reset-emby-password-result"');

@@ -39,10 +39,20 @@ export async function handleAdminGrantDays(request, env) {
 }
 
 // 获取系统配置
+function maskSecret(value) {
+  if (!value) return '';
+  const suffix = value.length > 4 ? value.slice(-4) : value;
+  return '*'.repeat(Math.max(8, value.length - suffix.length)) + suffix;
+}
+
+function isMaskedSecret(value) {
+  return /^\*{4,}.+/.test(value || '');
+}
+
 export async function handleAdminGetConfig(request, env) {
   const configs = await getAllConfig(env.DB);
   const obj = {};
-  for (const row of configs.results) obj[row.key] = row.value;
+  for (const row of configs.results) obj[row.key] = row.key === 'emby_api_key' || row.key === 'apiKey' ? maskSecret(row.value) : row.value;
   return json({ ok: true, config: obj });
 }
 
@@ -51,6 +61,7 @@ export async function handleAdminSetConfig(request, env) {
   const config = await parseBody(request);
   for (const [key, value] of Object.entries(config)) {
     if (typeof value === 'string' && value.trim()) {
+      if ((key === 'emby_api_key' || key === 'apiKey') && isMaskedSecret(value.trim())) continue;
       const cleaned = key === 'emby_base_url' || key === 'embyUrl' ? validateEmbyBaseUrl(value.trim()) : value.trim();
       await setConfig(env.DB, key, cleaned);
     }

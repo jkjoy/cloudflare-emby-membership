@@ -5,115 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Emby 会员中心</title>
   <script src="/assets/app.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: #1a1a2e;
-      color: #e5e7eb;
-      min-height: 100vh;
-    }
-    .navbar {
-      background: #1e1e3a;
-      border-bottom: 1px solid #2d2d50;
-      padding: 0 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 60px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .navbar .logo { font-size: 20px; font-weight: 700; color: #fff; }
-    .navbar .logo span { color: #6366f1; }
-    .navbar .user-menu { display: flex; align-items: center; gap: 16px; }
-    .vip-badge {
-      padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
-    }
-    .vip-badge.active { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
-    .vip-badge.inactive { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
-    .btn-outline {
-      padding: 6px 16px; border: 1px solid #3d3d6b; border-radius: 8px;
-      background: transparent; color: #d1d5db; font-size: 13px; cursor: pointer; transition: all 0.2s;
-    }
-    .btn-outline:hover { border-color: #6366f1; color: #a5b4fc; }
-    .container { max-width: 740px; margin: 0 auto; padding: 32px 20px; }
-    .card {
-      background: #1e1e3a; border: 1px solid #2d2d50; border-radius: 12px;
-      padding: 28px; margin-bottom: 24px;
-    }
-    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #fff; }
-    .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-    .status-item { text-align: center; padding: 16px; background: #2d2d50; border-radius: 10px; }
-    .status-item .label { font-size: 12px; color: #9ca3af; margin-bottom: 6px; }
-    .status-item .value { font-size: 20px; font-weight: 700; }
-    .status-item .value.active { color: #10b981; }
-    .status-item .value.inactive { color: #ef4444; }
-    .vip-icon { font-size: 48px; text-align: center; margin-bottom: 12px; }
-    .redeem-row { display: flex; gap: 12px; }
-    .redeem-row input {
-      flex: 1; padding: 12px 14px; background: #2d2d50; border: 1px solid #3d3d6b; border-radius: 8px;
-      color: #fff; font-size: 14px; font-family: 'Courier New', monospace; outline: none; transition: border-color 0.2s;
-    }
-    .redeem-row input:focus { border-color: #6366f1; }
-    .redeem-row input::placeholder { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #6b7280; }
-    .btn {
-      padding: 12px 28px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
-      cursor: pointer; transition: all 0.3s; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; white-space: nowrap;
-    }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-    .btn-success { background: linear-gradient(135deg, #10b981, #059669); }
-    .btn-success:hover { box-shadow: 0 4px 12px rgba(16,185,129,0.4); }
-    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; color: #d1d5db; font-size: 13px; margin-bottom: 6px; font-weight: 500; }
-    .form-group input {
-      width: 100%; padding: 10px 14px; background: #2d2d50; border: 1px solid #3d3d6b;
-      border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s;
-    }
-    .form-group input:focus { border-color: #6366f1; }
-    .form-row { display: flex; gap: 12px; }
-    .form-row .form-group { flex: 1; }
-    .emby-info {
-      background: #2d2d50; border-radius: 10px; padding: 18px; margin-top: 12px;
-    }
-    .emby-info .info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
-    .emby-info .info-label { color: #9ca3af; }
-    .emby-info .info-value { color: #e5e7eb; font-family: 'Courier New', monospace; }
-    .toast {
-      position: fixed; top: 20px; right: 20px; padding: 12px 24px; border-radius: 8px;
-      color: #fff; font-size: 14px; z-index: 9999; animation: slideIn 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .toast-info { background: #6366f1; }
-    .toast-success { background: #10b981; }
-    .toast-error { background: #ef4444; }
-    @keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-    .empty-state { text-align: center; padding: 40px 20px; color: #6b7280; }
-    .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    table th {
-      text-align: left; padding: 10px 12px; color: #9ca3af; font-weight: 500;
-      border-bottom: 1px solid #2d2d50; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
-    }
-    table td { padding: 10px 12px; border-bottom: 1px solid #2d2d50; }
-    table tr:nth-child(even) td { background: rgba(45,45,80,0.3); }
-    @media (max-width: 640px) {
-      .status-grid { grid-template-columns: 1fr; }
-      .redeem-row { flex-direction: column; }
-      .form-row { flex-direction: column; }
-    }
-  </style>
+  <link rel="stylesheet" href="/assets/dashboard.css">
 </head>
 <body>
   <nav class="navbar">
     <div class="logo">Emby <span>会员中心</span></div>
     <div class="user-menu">
       <span class="vip-badge inactive" id="vip-status">加载中...</span>
-      <button class="btn-outline" id="admin-btn" style="display:none;">管理后台</button>
-      <button class="btn-outline" onclick="logout()">退出登录</button>
+      <button class="btn-outline hidden" id="admin-btn">管理后台</button>
+      <button class="btn-outline" id="logout-btn">退出登录</button>
     </div>
   </nav>
 
@@ -147,17 +47,17 @@
     </div>
 
     <!-- 激活 Emby 账号（兑换后显示） -->
-    <div class="card" id="activate-section" style="display:none;">
+    <div class="card hidden" id="activate-section">
       <div class="card-title">🚀 激活 Emby 账号</div>
-      <p style="color:#9ca3af;font-size:14px;margin-bottom:16px;">
+      <p class="muted-copy">
         您已开通会员，点击下方按钮后系统会自动创建 Emby 账号并绑定当前会员。
       </p>
       <button class="btn btn-success" id="activate-btn">激活账号</button>
-      <div id="activate-result" style="margin-top:12px;"></div>
+      <div id="activate-result" class="result-space"></div>
     </div>
 
     <!-- 已激活账号信息 -->
-    <div class="card" id="emby-info-section" style="display:none;">
+    <div class="card hidden" id="emby-info-section">
       <div class="card-title">✅ Emby 账号信息</div>
       <div class="emby-info" id="emby-info-content"></div>
     </div>
@@ -165,7 +65,7 @@
     <!-- 修改密码 -->
     <div class="card" id="change-password-section">
       <div class="card-title">🔐 修改登录密码</div>
-      <p style="color:#9ca3af;font-size:14px;margin-bottom:16px;">
+      <p class="muted-copy">
         修改的是会员中心登录密码，不影响 Emby 账号密码。
       </p>
       <div class="form-row">
@@ -179,7 +79,7 @@
         </div>
       </div>
       <button class="btn" id="change-password-btn">修改密码</button>
-      <div id="change-password-result" style="margin-top:12px;"></div>
+      <div id="change-password-result" class="result-space"></div>
     </div>
 
     <!-- 使用记录 -->
@@ -198,231 +98,6 @@
     </div>
   </div>
 
-  <script>
-    var currentUser = null;
-    var latestServerLines = [];
-
-    async function init() {
-      try {
-        currentUser = await checkAuth();
-        if (!currentUser) {
-          window.location.href = '/login';
-          return;
-        }
-        // 管理员也可以停留在前台会员中心；需要进后台时手动点击按钮
-        if (document.getElementById('admin-btn')) {
-          document.getElementById('admin-btn').style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
-        }
-        await loadMemberStatus();
-      } catch (e) {
-        window.location.href = '/login';
-      }
-    }
-
-    async function loadMemberStatus() {
-      try {
-        var data = await API.get('/api/member/status');
-        var statusEl = document.getElementById('status-label');
-        var expireEl = document.getElementById('expire-label');
-        var daysEl = document.getElementById('days-label');
-        var vipEl = document.getElementById('vip-status');
-        var iconEl = document.getElementById('vip-icon');
-        latestServerLines = data.serverLines || [];
-
-        if (data.ok && data.isActive && data.activeMembership) {
-          var m = data.activeMembership;
-          statusEl.textContent = '✅ 已开通';
-          statusEl.className = 'value active';
-          expireEl.textContent = m.expireDate || '--';
-          iconEl.textContent = '🌟';
-          var expire = new Date(m.expireDate);
-          var now = new Date();
-          var diff = Math.ceil((expire - now) / (1000 * 60 * 60 * 24));
-          daysEl.textContent = diff > 0 ? diff + ' 天' : '已过期';
-          daysEl.className = diff > 0 ? 'value active' : 'value inactive';
-          if (vipEl) {
-            vipEl.textContent = 'VIP 至 ' + m.expireDate;
-            vipEl.className = 'vip-badge active';
-          }
-          // 有会员 -> 判断是否已激活 Emby
-          if (currentUser && currentUser.emby_user_id) {
-            showEmbyInfo(currentUser, { serverLines: latestServerLines });
-          } else {
-            showActivateForm();
-          }
-        } else {
-          statusEl.textContent = '❌ 未开通';
-          statusEl.className = 'value inactive';
-          expireEl.textContent = '--';
-          daysEl.textContent = '--';
-          iconEl.textContent = '💎';
-          if (vipEl) {
-            vipEl.textContent = '未开通会员';
-            vipEl.className = 'vip-badge inactive';
-          }
-          // 没会员：显示兑换区，隐藏其他
-          showRedeemOnly();
-        }
-
-        // 加载历史
-        var history = data.history || [];
-        var tbody = document.getElementById('history-body');
-        if (history.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="icon">📭</div>暂无使用记录</div></td></tr>';
-        } else {
-          tbody.innerHTML = history.slice(0, 20).map(function(h) {
-            return '<tr><td>' + escapeHTML(h.created_at || '--') + '</td><td>' + h.days_added + ' 天</td><td>' + escapeHTML(h.source || '--') + '</td><td>' + escapeHTML(h.expire_date || '--') + '</td></tr>';
-          }).join('');
-        }
-      } catch (e) {
-        console.error('loadMemberStatus error', e);
-      }
-    }
-
-    function showRedeemOnly() {
-      document.getElementById('activate-section').style.display = 'none';
-      document.getElementById('emby-info-section').style.display = 'none';
-      document.getElementById('redeem-section').style.display = 'block';
-    }
-
-    function showActivateForm() {
-      document.getElementById('activate-section').style.display = 'block';
-      document.getElementById('emby-info-section').style.display = 'none';
-      document.getElementById('redeem-section').style.display = 'none';
-    }
-
-    function renderServerLines(lines) {
-      if (!lines || !lines.length) return '<div class="info-row"><span class="info-label">服务器线路</span><span class="info-value">联系管理员获取</span></div>';
-      return lines.map(function(line) {
-        return '<div class="info-row"><span class="info-label">' + escapeHTML(line.name || '线路') + '</span><span class="info-value">' + escapeHTML(line.url || '--') + '</span></div>';
-      }).join('');
-    }
-
-    function showEmbyInfo(user, loginInfo) {
-      document.getElementById('activate-section').style.display = 'none';
-      document.getElementById('emby-info-section').style.display = 'block';
-      document.getElementById('redeem-section').style.display = 'none';
-      var username = (loginInfo && loginInfo.username) || user.emby_username || '--';
-      var passwordHtml = loginInfo && loginInfo.password
-        ? '<div class="info-row"><span class="info-label">登录密码</span><span class="info-value">' + escapeHTML(loginInfo.password) + '</span></div>'
-        : '<div class="info-row"><span class="info-label">登录密码</span><span class="info-value">已激活后不再显示，请使用激活时保存的密码</span></div>';
-      var tip = loginInfo && loginInfo.password
-        ? '<div style="margin-top:12px;color:#fbbf24;font-size:13px;">⚠️ 密码仅本次显示，请立即复制保存。</div>'
-        : '';
-      document.getElementById('emby-info-content').innerHTML =
-        '<div class="info-row"><span class="info-label">用户名</span><span class="info-value">' + escapeHTML(username) + '</span></div>' +
-        passwordHtml +
-        '<div style="color:#9ca3af;font-size:13px;margin:12px 0 6px;">服务器线路</div>' +
-        renderServerLines(loginInfo && loginInfo.serverLines) +
-        '<div class="info-row"><span class="info-label">状态</span><span class="info-value" style="color:#10b981;">已激活 ✅</span></div>' +
-        '<div style="margin-top:14px;"><button class="btn btn-outline" id="reset-emby-password-btn">重置 Emby 密码</button><div id="reset-emby-password-result" style="margin-top:12px;"></div></div>' + tip;
-      bindResetEmbyPassword();
-    }
-
-    function bindResetEmbyPassword() {
-      var btn = document.getElementById('reset-emby-password-btn');
-      if (!btn) return;
-      btn.addEventListener('click', async function() {
-        if (!confirm('确定要重置 Emby 密码吗？新密码只会显示一次，请及时保存。')) return;
-        var resultEl = document.getElementById('reset-emby-password-result');
-        resultEl.innerHTML = '';
-        this.disabled = true;
-        this.textContent = '重置中...';
-        try {
-          var data = await API.post('/api/emby/reset-password', {});
-          resultEl.innerHTML = '<div style="color:#10b981;font-size:13px;">✅ 新 Emby 密码：<span class="info-value">' + escapeHTML(data.data.password) + '</span><br><span style="color:#fbbf24;">仅本次显示，请立即复制保存。</span></div>';
-          showToast('Emby 密码已重置', 'success');
-        } catch (e) {
-          resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + escapeHTML(e.message) + '</div>';
-        } finally {
-          this.disabled = false;
-          this.textContent = '重置 Emby 密码';
-        }
-      });
-    }
-
-    // 兑换卡密
-    document.getElementById('redeem-btn').addEventListener('click', async function() {
-      var code = document.getElementById('code-input').value.trim();
-      if (!code) { showToast('请输入卡密', 'error'); return; }
-      this.disabled = true;
-      this.textContent = '兑换中...';
-      try {
-        var data = await API.post('/api/card/redeem', { code: code });
-        showToast(data.message || '兑换成功', 'success');
-        document.getElementById('code-input').value = '';
-        // 刷新状态
-        currentUser = await checkAuth();
-        await loadMemberStatus();
-      } catch (e) {
-        showToast(e.message, 'error');
-      } finally {
-        this.disabled = false;
-        this.textContent = '兑 换';
-      }
-    });
-
-    // 回车兑换
-    document.getElementById('code-input').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') document.getElementById('redeem-btn').click();
-    });
-
-    document.getElementById('admin-btn').addEventListener('click', function() {
-      window.location.href = '/admin';
-    });
-
-    document.getElementById('change-password-btn').addEventListener('click', async function() {
-      var oldPassword = document.getElementById('old-password').value;
-      var newPassword = document.getElementById('new-password').value;
-      var resultEl = document.getElementById('change-password-result');
-      resultEl.innerHTML = '';
-      if (!oldPassword || !newPassword || newPassword.length < 6) {
-        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">请填写旧密码，新密码至少 6 位</div>';
-        return;
-      }
-      this.disabled = true;
-      this.textContent = '修改中...';
-      try {
-        var data = await API.post('/api/user/change-password', { oldPassword: oldPassword, newPassword: newPassword });
-        resultEl.innerHTML = '<div style="color:#10b981;font-size:13px;">✅ ' + escapeHTML(data.message || '密码修改成功') + '</div>';
-        document.getElementById('old-password').value = '';
-        document.getElementById('new-password').value = '';
-        showToast('密码修改成功', 'success');
-      } catch (e) {
-        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + escapeHTML(e.message) + '</div>';
-      } finally {
-        this.disabled = false;
-        this.textContent = '修改密码';
-      }
-    });
-
-    // 激活 Emby 账号
-    document.getElementById('activate-btn').addEventListener('click', async function() {
-      var resultEl = document.getElementById('activate-result');
-      resultEl.innerHTML = '';
-      this.disabled = true;
-      this.textContent = '激活中...';
-      try {
-        var data = await API.post('/api/emby/create-account', {});
-        resultEl.innerHTML = '<div style="color:#10b981;font-size:14px;font-weight:600;">✅ ' + escapeHTML(data.message) + '</div>';
-        showToast('账号激活成功！请保存登录信息', 'success');
-        currentUser = await checkAuth();
-        showEmbyInfo(currentUser || {}, data.data || {});
-      } catch (e) {
-        resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + escapeHTML(e.message) + '</div>';
-      } finally {
-        this.disabled = false;
-        this.textContent = '激活账号';
-      }
-    });
-
-    // 退出登录
-    async function logout() {
-      try { await API.post('/api/auth/logout'); } catch {}
-      window.location.href = '/login';
-    }
-
-    init();
-  </script>
+  <script src="/assets/dashboard.js"></script>
 </body>
 </html>

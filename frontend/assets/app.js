@@ -33,8 +33,8 @@ async function loadSiteConfig() {
     document.title = document.title.includes('管理后台') ? siteTitle + ' - 管理后台' :
       document.title.includes('登录') ? siteTitle + ' - 登录' : siteTitle;
     document.querySelectorAll('.logo').forEach(function(el) {
-      if (el.textContent.includes('管理')) el.innerHTML = siteTitle + ' <span>管理</span>';
-      else el.innerHTML = siteTitle;
+      if (el.textContent.includes('管理')) el.innerHTML = escapeHTML(siteTitle) + ' <span>管理</span>';
+      else el.textContent = siteTitle;
     });
   } catch (e) {
     console.warn('Failed to load site config', e);
