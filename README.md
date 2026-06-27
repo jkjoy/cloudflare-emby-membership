@@ -10,6 +10,7 @@
 - **服务器线路展示：** 管理后台可配置多条 Emby 登录线路，用户激活后可直接查看。
 - **管理后台：** 支持卡密管理、用户管理、手动加天、Emby 连接配置等。
 - **到期处理：** Cloudflare Cron 定时检查过期会员，并通过 Emby API 禁用对应账号。
+- **Telegram 私聊机器人：** 用户可通过 Bot 绑定账号、查询会员、兑换卡密、激活 Emby、查看线路和重置 Emby 密码。
 - **单 Worker 部署：** 前端静态资源与 API 由同一个 Cloudflare Worker 提供服务。
 
 ## 技术栈
@@ -96,7 +97,30 @@ npx wrangler d1 migrations apply emby-membership-db --local
 npm run migrate:apply
 ```
 
-### 4. 启动本地开发服务
+### 4. 配置 Telegram Bot Secret（可选）
+
+如果启用 Telegram 机器人，需要设置以下密钥：
+
+```bash
+wrangler secret put TELEGRAM_BOT_TOKEN
+wrangler secret put TELEGRAM_WEBHOOK_SECRET
+```
+
+部署后设置 Telegram Webhook：
+
+```bash
+curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://你的域名/api/telegram/webhook",
+    "secret_token": "你的 TELEGRAM_WEBHOOK_SECRET",
+    "allowed_updates": ["message", "callback_query"]
+  }'
+```
+
+> Bot 设计为**仅私聊使用**，群组/频道消息会被拒绝，以避免泄露账号信息。
+
+### 5. 启动本地开发服务
 
 ```bash
 npm run dev
@@ -104,7 +128,7 @@ npm run dev
 
 默认会启动 Wrangler 本地开发服务。打开终端输出中的本地地址即可访问。
 
-### 5. 部署到 Cloudflare Workers
+### 6. 部署到 Cloudflare Workers
 
 ```bash
 npm run deploy
@@ -140,6 +164,14 @@ npm run deploy
 5. 系统自动创建 Emby 账号并显示用户名、密码和服务器线路。
 6. 用户保存登录信息后即可登录 Emby。
 
+### Telegram Bot 流程
+
+1. 用户登录网页会员中心。
+2. 点击「生成 Telegram 绑定码」。
+3. 在 Telegram 私聊机器人中发送绑定码，例如 `TG-ABC123`。
+4. 绑定成功后可通过按钮执行：查询会员、兑换卡密、激活 Emby、查看线路、重置 Emby 密码。
+5. 兑换卡密流程支持 `/cancel` 或「取消」按钮退出。
+
 ### 管理员流程
 
 1. 登录管理员账号。
@@ -161,6 +193,8 @@ npm run deploy
 | `/api/card/redeem` | POST | 兑换卡密 |
 | `/api/emby/create-account` | POST | 自动创建并绑定 Emby 账号 |
 | `/api/emby/check-connection` | GET / POST | 检查 Emby 连接 |
+| `/api/telegram/bind-code` | POST | 登录用户生成 Telegram 绑定码 |
+| `/api/telegram/webhook` | POST | Telegram Bot Webhook |
 | `/api/admin/card/generate` | POST | 管理员生成卡密 |
 | `/api/admin/card/list` | GET | 管理员查看卡密列表 |
 | `/api/admin/user/list` | GET | 管理员查看用户列表 |

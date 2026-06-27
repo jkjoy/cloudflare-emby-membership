@@ -7,6 +7,7 @@ import { handleMemberStatus } from './member.js';
 import { handleAdmin } from './admin.js';
 import { handleCheckConnection, handleSyncUser, handleCreateEmbyAccount, handleResetEmbyPassword } from './emby.js';
 import { handleCron } from './cron.js';
+import { handleCreateTelegramBindCode, handleTelegramWebhook } from './telegram.js';
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
@@ -35,6 +36,10 @@ async function handleRequest(request, env) {
       const title = (await getConfig(env.DB, 'siteTitle'))?.value || env.SITE_TITLE || 'Emby 会员中心';
       return json({ ok: true, siteTitle: title });
     }
+
+    // === Telegram Bot ===
+    if (path === '/api/telegram/webhook' && request.method === 'POST') return handleTelegramWebhook(request, env);
+    if (path === '/api/telegram/bind-code' && request.method === 'POST') return handleCreateTelegramBindCode(request, env);
 
     // === 用户认证 ===
     if (path === '/api/auth/register' && request.method === 'POST') return handleRegister(request, env);

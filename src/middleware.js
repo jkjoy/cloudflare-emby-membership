@@ -4,7 +4,7 @@ import { SESSION_TTL } from './constants.js';
 
 const PUBLIC_PATHS = [
   '/api/auth/login', '/api/auth/register',
-  '/api/health', '/api/site/config',
+  '/api/health', '/api/site/config', '/api/telegram/webhook',
   '/login', '/dashboard', '/admin',
   '/index.html', '/dashboard.html', '/admin.html',
   '/assets/',

@@ -215,6 +215,22 @@ var currentUser = null;
       }
     });
 
+    document.getElementById('telegram-bind-btn').addEventListener('click', async function() {
+      var resultEl = document.getElementById('telegram-bind-result');
+      resultEl.innerHTML = '';
+      this.disabled = true;
+      this.textContent = '生成中...';
+      try {
+        var data = await API.post('/api/telegram/bind-code', {});
+        resultEl.innerHTML = '<div class="result-success">绑定码：<span class="info-value">' + escapeHTML(data.code) + '</span><br><span class="warn-inline">10 分钟内有效，请在 Telegram 私聊机器人发送该绑定码。</span></div>';
+      } catch (e) {
+        resultEl.innerHTML = '<div class="result-error">❌ ' + escapeHTML(e.message) + '</div>';
+      } finally {
+        this.disabled = false;
+        this.textContent = '生成 Telegram 绑定码';
+      }
+    });
+
     document.getElementById('logout-btn').addEventListener('click', logout);
 
     // 退出登录
