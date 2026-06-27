@@ -435,7 +435,7 @@
             : '<span class="badge badge-novip">&#x274C; 非会员</span>';
           return '<tr onclick="toggleUserDetail(' + u.id + ', this)" style="cursor:pointer;">' +
             '<td>' + u.id + '</td><td>' + u.username + '</td><td>' + (u.email || '--') + '</td>' +
-            '<td>' + (u.embyId || u.embyBind || '未绑定') + '</td><td>' + memberBadge + '</td>' +
+            '<td>' + (u.embyBind || u.emby_username || u.emby_user_id || '未绑定') + '</td><td>' + memberBadge + '</td>' +
             '<td>' + (u.created_at || '--') + '</td></tr>' +
             '<tr class="detail-row" data-user-id="' + u.id + '"><td colspan="6"><div class="detail-inner">' +
             '<div id="user-detail-' + u.id + '"><div style="color:#9ca3af;font-size:12px;">加载中...</div></div>' +

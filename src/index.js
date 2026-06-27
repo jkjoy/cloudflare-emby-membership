@@ -5,7 +5,7 @@ import { handleRegister, handleLogin, handleLogout, handleUserInfo, handleChange
 import { handleRedeem } from './card.js';
 import { handleMemberStatus } from './member.js';
 import { handleAdmin } from './admin.js';
-import { handleCheckConnection, handleSyncUser, handleCreateEmbyAccount } from './emby.js';
+import { handleCheckConnection, handleSyncUser, handleCreateEmbyAccount, handleResetEmbyPassword } from './emby.js';
 import { handleCron } from './cron.js';
 
 async function handleRequest(request, env) {
@@ -29,6 +29,13 @@ async function handleRequest(request, env) {
     const authError = await authMiddleware(request, env);
     if (authError) return authError;
 
+    // === 公开站点配置 ===
+    if (path === '/api/site/config') {
+      const { getConfig } = await import('./db.js');
+      const title = (await getConfig(env.DB, 'siteTitle'))?.value || env.SITE_TITLE || 'Emby 会员中心';
+      return json({ ok: true, siteTitle: title });
+    }
+
     // === 用户认证 ===
     if (path === '/api/auth/register' && request.method === 'POST') return handleRegister(request, env);
     if (path === '/api/auth/login' && request.method === 'POST') return handleLogin(request, env);
@@ -48,6 +55,7 @@ async function handleRequest(request, env) {
     if (path === '/api/emby/check-connection') return handleCheckConnection(request, env);
     if (path === '/api/emby/sync-user' && request.method === 'POST') return handleSyncUser(request, env);
     if (path === '/api/emby/create-account' && request.method === 'POST') return handleCreateEmbyAccount(request, env);
+    if (path === '/api/emby/reset-password' && request.method === 'POST') return handleResetEmbyPassword(request, env);
 
     // === 管理后台 ===
     if (path.startsWith('/api/admin')) return handleAdmin(request, env);

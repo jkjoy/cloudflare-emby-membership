@@ -32,7 +32,7 @@ export function parseServerLines(raw, fallbackUrl = '') {
   return fallbackUrl ? [{ name: '默认线路', url: fallbackUrl }] : [];
 }
 
-function generatePassword(length = 12) {
+export function generatePassword(length = 12) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
@@ -172,6 +172,37 @@ export async function handleCreateEmbyAccount(request, env) {
   } catch (e) {
     return json({ error: 'create_failed', message: e.message }, 502);
   }
+}
+
+export async function handleResetEmbyPassword(request, env) {
+  const config = await fetchConfig(env.DB);
+  if (!config.baseUrl || !config.apiKey) {
+    return json({ error: 'not_configured', message: 'Emby 未配置，请联系管理员' }, 400);
+  }
+
+  const userId = request.session.userId;
+  const { getUserById } = await import('./db.js');
+  const user = await getUserById(env.DB, userId);
+  if (!user || !user.emby_user_id) {
+    return json({ error: 'not_activated', message: '请先激活 Emby 账号' }, 400);
+  }
+
+  const base = config.baseUrl.replace(/\/+$/, '');
+  const newPassword = generatePassword();
+  const res = await fetch(base + '/emby/Users/' + user.emby_user_id + '/Password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Emby-Token': config.apiKey },
+    body: JSON.stringify({ Id: user.emby_user_id, CurrentPw: '', NewPw: newPassword }),
+  });
+  if (!res.ok) {
+    return json({ error: 'reset_failed', message: 'Emby 密码重置失败' }, 502);
+  }
+
+  return json({
+    ok: true,
+    message: 'Emby 密码已重置，仅本次显示，请立即保存',
+    data: { password: newPassword },
+  });
 }
 
 // 通过 Emby API 启用/禁用用户（cron 调用）

@@ -110,9 +110,21 @@ export function getCards(db, { status, limit = 50, offset = 0 }) {
 }
 
 export function getUsersAdmin(db, { limit = 50, offset = 0 }) {
-  return db.prepare(
-    'SELECT id, username, email, emby_username, role, status, created_at FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?'
+  const result = db.prepare(
+    'SELECT id, username, email, emby_username, emby_user_id, role, status, created_at FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?'
   ).bind(limit, offset).all();
+  return {
+    ...result,
+    results: (result.results || []).map(function(user) {
+      return {
+        ...user,
+        embyUsername: user.emby_username,
+        embyUserId: user.emby_user_id,
+        embyBind: user.emby_username || user.emby_user_id || '',
+        isEmbyBound: !!user.emby_user_id,
+      };
+    }),
+  };
 }
 
 export function updateUserEmby(db, userId, { embyUsername, embyUserId }) {

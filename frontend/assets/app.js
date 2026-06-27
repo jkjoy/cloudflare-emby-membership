@@ -14,6 +14,27 @@ const API = {
   post(path, body) { return this.request(path, { method: 'POST', body: JSON.stringify(body) }); },
 };
 
+async function loadSiteConfig() {
+  try {
+    const data = await API.get('/api/site/config');
+    const siteTitle = data.siteTitle || 'Emby 会员中心';
+    document.title = document.title.includes('管理后台') ? siteTitle + ' - 管理后台' :
+      document.title.includes('登录') ? siteTitle + ' - 登录' : siteTitle;
+    document.querySelectorAll('.logo').forEach(function(el) {
+      if (el.textContent.includes('管理')) el.innerHTML = siteTitle + ' <span>管理</span>';
+      else el.innerHTML = siteTitle;
+    });
+  } catch (e) {
+    console.warn('Failed to load site config', e);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadSiteConfig);
+} else {
+  loadSiteConfig();
+}
+
 // 通用 toast 提示
 function showToast(message, type = 'info') {
   const div = document.createElement('div');

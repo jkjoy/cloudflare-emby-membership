@@ -314,7 +314,31 @@
         passwordHtml +
         '<div style="color:#9ca3af;font-size:13px;margin:12px 0 6px;">服务器线路</div>' +
         renderServerLines(loginInfo && loginInfo.serverLines) +
-        '<div class="info-row"><span class="info-label">状态</span><span class="info-value" style="color:#10b981;">已激活 ✅</span></div>' + tip;
+        '<div class="info-row"><span class="info-label">状态</span><span class="info-value" style="color:#10b981;">已激活 ✅</span></div>' +
+        '<div style="margin-top:14px;"><button class="btn btn-outline" id="reset-emby-password-btn">重置 Emby 密码</button><div id="reset-emby-password-result" style="margin-top:12px;"></div></div>' + tip;
+      bindResetEmbyPassword();
+    }
+
+    function bindResetEmbyPassword() {
+      var btn = document.getElementById('reset-emby-password-btn');
+      if (!btn) return;
+      btn.addEventListener('click', async function() {
+        if (!confirm('确定要重置 Emby 密码吗？新密码只会显示一次，请及时保存。')) return;
+        var resultEl = document.getElementById('reset-emby-password-result');
+        resultEl.innerHTML = '';
+        this.disabled = true;
+        this.textContent = '重置中...';
+        try {
+          var data = await API.post('/api/emby/reset-password', {});
+          resultEl.innerHTML = '<div style="color:#10b981;font-size:13px;">✅ 新 Emby 密码：<span class="info-value">' + data.data.password + '</span><br><span style="color:#fbbf24;">仅本次显示，请立即复制保存。</span></div>';
+          showToast('Emby 密码已重置', 'success');
+        } catch (e) {
+          resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">❌ ' + e.message + '</div>';
+        } finally {
+          this.disabled = false;
+          this.textContent = '重置 Emby 密码';
+        }
+      });
     }
 
     // 兑换卡密
