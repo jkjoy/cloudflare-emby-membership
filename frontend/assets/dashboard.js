@@ -13,6 +13,7 @@ var currentUser = null;
           document.getElementById('admin-btn').classList.toggle('hidden', currentUser.role !== 'admin');
         }
         await loadMemberStatus();
+        await loadTelegramBindingStatus();
       } catch (e) {
         window.location.href = '/login';
       }
@@ -214,6 +215,34 @@ var currentUser = null;
         this.textContent = '激活账号';
       }
     });
+
+    async function loadTelegramBindingStatus() {
+      var infoEl = document.getElementById('telegram-binding-info');
+      var btn = document.getElementById('telegram-bind-btn');
+      var copyEl = document.getElementById('telegram-bind-copy');
+      if (!infoEl || !btn) return;
+      try {
+        var data = await API.get('/api/telegram/binding');
+        if (data && data.bound && data.binding) {
+          var username = data.binding.telegramUsername ? '@' + data.binding.telegramUsername : '--';
+          infoEl.classList.remove('hidden');
+          infoEl.innerHTML =
+            '<div class="info-row"><span class="info-label">状态</span><span class="info-value success-inline">已绑定 Telegram ✅</span></div>' +
+            '<div class="info-row"><span class="info-label">Telegram ID</span><span class="info-value">' + escapeHTML(data.binding.telegramUserId || '--') + '</span></div>' +
+            '<div class="info-row"><span class="info-label">Telegram 用户名</span><span class="info-value">' + escapeHTML(username) + '</span></div>' +
+            '<div class="info-row"><span class="info-label">绑定时间</span><span class="info-value">' + escapeHTML(data.binding.boundAt || '--') + '</span></div>';
+          if (copyEl) copyEl.textContent = '当前账号已绑定 Telegram 机器人。如需更换绑定，可重新生成绑定码并在新的 Telegram 私聊中发送。';
+          btn.textContent = '重新生成 Telegram 绑定码';
+        } else {
+          infoEl.classList.add('hidden');
+          infoEl.innerHTML = '';
+          if (copyEl) copyEl.textContent = '点击生成一次性绑定码，然后在 Telegram 私聊机器人中发送该绑定码。';
+          btn.textContent = '生成 Telegram 绑定码';
+        }
+      } catch (e) {
+        infoEl.classList.add('hidden');
+      }
+    }
 
     document.getElementById('telegram-bind-btn').addEventListener('click', async function() {
       var resultEl = document.getElementById('telegram-bind-result');

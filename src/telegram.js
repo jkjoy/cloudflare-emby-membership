@@ -1,5 +1,5 @@
 import { json } from './utils.js';
-import { generateTelegramBindCode, consumeTelegramBindCode, getTelegramBindingByTelegramUser } from './telegramStorage.js';
+import { generateTelegramBindCode, consumeTelegramBindCode, getTelegramBindingByTelegramUser, getTelegramBindingByUserId } from './telegramStorage.js';
 import { getUserWithMembership, getCardByCode, useCard, addMembership, getUserById, getConfig } from './db.js';
 import { parseServerLines, handleCreateEmbyAccount, handleResetEmbyPassword } from './emby.js';
 
@@ -247,4 +247,21 @@ export async function handleCreateTelegramBindCode(request, env) {
   if (!userId) return json({ error: 'unauthorized', message: '请先登录' }, 401);
   const code = await generateTelegramBindCode(env.DB, userId);
   return json({ ok: true, code, expiresIn: 600 });
+}
+
+export async function handleTelegramBindingStatus(request, env) {
+  const userId = request.session?.userId;
+  if (!userId) return json({ error: 'unauthorized', message: '请先登录' }, 401);
+  const binding = await getTelegramBindingByUserId(env.DB, userId);
+  if (!binding) return json({ ok: true, bound: false, binding: null });
+  return json({
+    ok: true,
+    bound: true,
+    binding: {
+      telegramUserId: binding.telegram_user_id,
+      telegramUsername: binding.telegram_username || '',
+      telegramChatId: binding.telegram_chat_id,
+      boundAt: binding.updated_at || binding.created_at || '',
+    },
+  });
 }

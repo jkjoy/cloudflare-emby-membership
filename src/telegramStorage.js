@@ -18,6 +18,11 @@ export function getTelegramBindingByTelegramUser(db, telegramUserId) {
     .bind(String(telegramUserId)).first();
 }
 
+export function getTelegramBindingByUserId(db, userId) {
+  return db.prepare('SELECT * FROM telegram_bindings WHERE user_id = ?')
+    .bind(userId).first();
+}
+
 export async function consumeTelegramBindCode(db, code, telegramUser, chatId) {
   const normalized = String(code || '').trim().toUpperCase();
   const row = await db.prepare(

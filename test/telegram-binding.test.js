@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { describe, expect, it } from 'vitest';
-import { generateTelegramBindCode, consumeTelegramBindCode, getTelegramBindingByTelegramUser } from '../src/telegramStorage.js';
-import { handleCreateTelegramBindCode } from '../src/telegram.js';
+import { generateTelegramBindCode, consumeTelegramBindCode, getTelegramBindingByTelegramUser, getTelegramBindingByUserId } from '../src/telegramStorage.js';
+import { handleCreateTelegramBindCode, handleTelegramBindingStatus } from '../src/telegram.js';
 
 function createDb() {
   const state = { bindCodes: [], bindings: [], sql: [] };
@@ -24,7 +24,7 @@ function createDb() {
               }
               if (sql.includes('INSERT OR REPLACE INTO telegram_bindings')) {
                 state.bindings = state.bindings.filter(b => b.user_id !== params[0] && b.telegram_user_id !== String(params[1]));
-                state.bindings.push({ user_id: params[0], telegram_user_id: String(params[1]), telegram_username: params[2], telegram_chat_id: String(params[3]) });
+                state.bindings.push({ user_id: params[0], telegram_user_id: String(params[1]), telegram_username: params[2], telegram_chat_id: String(params[3]), updated_at: '2026-06-27 10:00:00' });
                 return { meta: { changes: 1 } };
               }
               throw new Error('Unexpected run SQL: ' + sql);
@@ -33,8 +33,11 @@ function createDb() {
               if (sql.includes('FROM telegram_bind_codes')) {
                 return state.bindCodes.find(c => c.code === params[0] && !c.used_at) || null;
               }
-              if (sql.includes('FROM telegram_bindings')) {
+              if (sql.includes('FROM telegram_bindings WHERE telegram_user_id')) {
                 return state.bindings.find(b => b.telegram_user_id === String(params[0])) || null;
+              }
+              if (sql.includes('FROM telegram_bindings WHERE user_id')) {
+                return state.bindings.find(b => b.user_id === params[0]) || null;
               }
               throw new Error('Unexpected first SQL: ' + sql);
             },
@@ -74,5 +77,21 @@ describe('Telegram binding storage', () => {
 
     expect(binding).toMatchObject({ userId: 7, telegramUserId: '123456' });
     expect(await getTelegramBindingByTelegramUser(db, 123456)).toMatchObject({ user_id: 7, telegram_user_id: '123456' });
+  });
+
+  it('returns the current web user Telegram binding status', async () => {
+    const db = createDb();
+    const code = await generateTelegramBindCode(db, 7);
+    await consumeTelegramBindCode(db, code, { id: 123456, username: 'sun' }, 123456);
+
+    const binding = await getTelegramBindingByUserId(db, 7);
+    expect(binding).toMatchObject({ user_id: 7, telegram_user_id: '123456', telegram_username: 'sun' });
+
+    const res = await handleTelegramBindingStatus({ session: { userId: 7 } }, { DB: db });
+    const body = await res.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.bound).toBe(true);
+    expect(body.binding).toMatchObject({ telegramUserId: '123456', telegramUsername: 'sun', boundAt: '2026-06-27 10:00:00' });
   });
 });

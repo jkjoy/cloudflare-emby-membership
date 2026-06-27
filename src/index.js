@@ -7,7 +7,7 @@ import { handleMemberStatus } from './member.js';
 import { handleAdmin } from './admin.js';
 import { handleCheckConnection, handleSyncUser, handleCreateEmbyAccount, handleResetEmbyPassword } from './emby.js';
 import { handleCron } from './cron.js';
-import { handleCreateTelegramBindCode, handleTelegramWebhook } from './telegram.js';
+import { handleCreateTelegramBindCode, handleTelegramWebhook, handleTelegramBindingStatus } from './telegram.js';
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
@@ -39,6 +39,7 @@ async function handleRequest(request, env) {
 
     // === Telegram Bot ===
     if (path === '/api/telegram/webhook' && request.method === 'POST') return handleTelegramWebhook(request, env);
+    if (path === '/api/telegram/binding' && request.method === 'GET') return handleTelegramBindingStatus(request, env);
     if (path === '/api/telegram/bind-code' && request.method === 'POST') return handleCreateTelegramBindCode(request, env);
 
     // === 用户认证 ===

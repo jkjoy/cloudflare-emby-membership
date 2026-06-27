@@ -7,7 +7,10 @@ describe('Telegram bind UI', () => {
 
     expect(html).toContain('id="telegram-bind-section"');
     expect(html).toContain('id="telegram-bind-btn"');
+    expect(html).toContain('id="telegram-binding-info"');
+    expect(html).toContain("API.get('/api/telegram/binding'");
     expect(html).toContain("API.post('/api/telegram/bind-code'");
     expect(html).toContain('telegram-bind-result');
+    expect(html).toContain('已绑定 Telegram');
   });
 });
