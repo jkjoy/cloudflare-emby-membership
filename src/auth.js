@@ -3,9 +3,10 @@ import { json, parseBody, createPasswordHash, verifyPasswordHash, needsPasswordR
 import { createSession, destroySession } from './middleware.js';
 import { getUserByUsername, createUser, getUserWithMembership, getUserAuthById, updateUserPassword } from './db.js';
 import { enforceRateLimit } from './rateLimit.js';
+import { createInviteIfValid, getOrCreateInviteCode, rewardInviteRegistration } from './points.js';
 
 export async function handleRegister(request, env) {
-  const { username, password, email } = await parseBody(request);
+  const { username, password, email, inviteCode } = await parseBody(request);
   if (!username || !password || username.length < 3 || password.length < 6) {
     return json({ error: 'invalid_input', message: '用户名至少3位，密码至少6位' }, 400);
   }
@@ -21,6 +22,13 @@ export async function handleRegister(request, env) {
   const success = await createUser(env.DB, { username, password_hash: passwordHash, email });
   if (!success) {
     return json({ error: 'db_error', message: '注册失败' }, 500);
+  }
+
+  const createdUser = await getUserByUsername(env.DB, username);
+  if (createdUser) {
+    await getOrCreateInviteCode(env.DB, createdUser.id);
+    await createInviteIfValid(env.DB, inviteCode, createdUser.id);
+    await rewardInviteRegistration(env.DB, createdUser.id);
   }
 
   return json({ ok: true, message: '注册成功' });

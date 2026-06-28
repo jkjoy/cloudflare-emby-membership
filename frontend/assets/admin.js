@@ -52,14 +52,16 @@ var currentUser = null;
 
     async function loadDashboard() {
       try {
-        var usersData = await API.get('/api/admin/user/list');
-        var cardsData = await API.get('/api/admin/card/list');
-        var userList = usersData.users || usersData.data || [];
-        var cardList = cardsData.cards || cardsData.data || [];
-        document.getElementById('stat-users').textContent = userList.length;
-        document.getElementById('stat-members').textContent = userList.filter(function(u) { return u.activeMembership || u.isMember; }).length;
-        document.getElementById('stat-cards').textContent = cardList.length;
-        document.getElementById('stat-used-cards').textContent = cardList.filter(function(c) { return c.status === 'used'; }).length;
+        var overview = await API.get('/api/admin/overview');
+        var stats = overview.stats || {};
+        document.getElementById('stat-users').textContent = stats.users ?? '-';
+        document.getElementById('stat-members').textContent = stats.members ?? '-';
+        document.getElementById('stat-cards').textContent = stats.cards ?? '-';
+        document.getElementById('stat-used-cards').textContent = stats.usedCards ?? '-';
+        var emby = stats.emby || {};
+        document.getElementById('stat-emby-movies').textContent = emby.error ? '错误' : (emby.movieCount ?? '-');
+        document.getElementById('stat-emby-series').textContent = emby.error ? '错误' : (emby.seriesCount ?? '-');
+        document.getElementById('stat-emby-episodes').textContent = emby.error ? '错误' : (emby.episodeCount ?? '-');
       } catch (e) {
         console.error('Failed to load dashboard', e);
       }
@@ -241,6 +243,12 @@ var currentUser = null;
         if (cfg.emby_api_key || cfg.apiKey) document.getElementById('cfg-api-key').value = cfg.emby_api_key || cfg.apiKey;
         if (cfg.emby_server_lines) document.getElementById('cfg-server-lines').value = cfg.emby_server_lines;
         if (cfg.siteTitle) document.getElementById('cfg-site-title').value = cfg.siteTitle;
+        if (cfg.points_checkin_min) document.getElementById('cfg-checkin-min').value = cfg.points_checkin_min;
+        if (cfg.points_checkin_max) document.getElementById('cfg-checkin-max').value = cfg.points_checkin_max;
+        if (cfg.points_exchange_cost) document.getElementById('cfg-exchange-cost').value = cfg.points_exchange_cost;
+        if (cfg.points_exchange_days) document.getElementById('cfg-exchange-days').value = cfg.points_exchange_days;
+        if (cfg.points_invite_register) document.getElementById('cfg-invite-register').value = cfg.points_invite_register;
+        if (cfg.points_invite_member) document.getElementById('cfg-invite-member').value = cfg.points_invite_member;
       } catch (e) {
         console.error('Failed to load config', e);
       }
@@ -296,6 +304,28 @@ var currentUser = null;
       } finally {
         this.disabled = false;
         this.textContent = '保存标题';
+      }
+    });
+
+    document.getElementById('cfg-points-btn').addEventListener('click', async function() {
+      var payload = {
+        points_checkin_min: document.getElementById('cfg-checkin-min').value.trim(),
+        points_checkin_max: document.getElementById('cfg-checkin-max').value.trim(),
+        points_exchange_cost: document.getElementById('cfg-exchange-cost').value.trim(),
+        points_exchange_days: document.getElementById('cfg-exchange-days').value.trim(),
+        points_invite_register: document.getElementById('cfg-invite-register').value.trim(),
+        points_invite_member: document.getElementById('cfg-invite-member').value.trim(),
+      };
+      this.disabled = true;
+      this.textContent = '保存中...';
+      try {
+        await API.post('/api/admin/config', payload);
+        showToast('积分设置已保存', 'success');
+      } catch (e) {
+        showToast(e.message, 'error');
+      } finally {
+        this.disabled = false;
+        this.textContent = '保存积分设置';
       }
     });
 

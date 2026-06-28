@@ -1,8 +1,48 @@
 // src/admin.js — 管理后台路由分发
 import { json, parseBody } from './utils.js';
-import { getConfig, setConfig, getAllConfig, getUsersAdmin, getUserWithMembership } from './db.js';
+import { getConfig, setConfig, getAllConfig, getUsersAdmin, getUserWithMembership, getCards } from './db.js';
 import { handleGenerateCard, handleCardList, handleDisableCard } from './card.js';
 import { validateEmbyBaseUrl } from './emby.js';
+
+async function fetchEmbyOverview(env) {
+  const baseR = await getConfig(env.DB, 'emby_base_url');
+  const keyR = await getConfig(env.DB, 'emby_api_key');
+  if (!baseR?.value || !keyR?.value) return { configured: false };
+  const base = validateEmbyBaseUrl(baseR.value).replace(/\/+$/, '');
+  try {
+    const res = await fetch(base + '/emby/Items/Counts', { headers: { 'X-Emby-Token': keyR.value } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return {
+      configured: true,
+      movieCount: data.MovieCount || 0,
+      seriesCount: data.SeriesCount || 0,
+      episodeCount: data.EpisodeCount || 0,
+    };
+  } catch (e) {
+    return { configured: true, error: e.message };
+  }
+}
+
+export async function handleAdminOverview(request, env) {
+  const [users, cards, emby] = await Promise.all([
+    getUsersAdmin(env.DB, { limit: 1000, offset: 0 }),
+    getCards(env.DB, { limit: 1000, offset: 0 }),
+    fetchEmbyOverview(env),
+  ]);
+  const userList = users.results || [];
+  const cardList = cards.results || [];
+  return json({
+    ok: true,
+    stats: {
+      users: userList.length,
+      members: userList.filter(u => u.activeMembership || u.isMember).length,
+      cards: cardList.length,
+      usedCards: cardList.filter(c => c.status === 'used').length,
+      emby,
+    },
+  });
+}
 
 // 用户列表
 export async function handleAdminUserList(request, env) {
@@ -74,6 +114,7 @@ export async function handleAdmin(request, env) {
   const url = new URL(request.url);
   const path = url.pathname.replace('/api/admin', '');
 
+  if (path === '/overview') return handleAdminOverview(request, env);
   if (path === '/card/generate') return handleGenerateCard(request, env);
   if (path === '/card/list') return handleCardList(request, env);
   if (path === '/card/disable') return handleDisableCard(request, env);

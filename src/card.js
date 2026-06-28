@@ -2,6 +2,7 @@
 import { json, parseBody, generateCode } from './utils.js';
 import { getCardByCode, useCard, addMembership, createCard, getCards } from './db.js';
 import { enforceRateLimit } from './rateLimit.js';
+import { rewardInviteMembership } from './points.js';
 
 // 用户兑换卡密
 export async function handleRedeem(request, env) {
@@ -36,6 +37,8 @@ export async function handleRedeem(request, env) {
   if (!result) {
     return json({ error: 'db_error', message: '会员添加失败' }, 500);
   }
+
+  await rewardInviteMembership(env.DB, userId);
 
   return json({
     ok: true,

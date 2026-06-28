@@ -33,6 +33,9 @@
           <div class="stat-card"><div class="stat-num" id="stat-members">-</div><div class="stat-label">会员数</div></div>
           <div class="stat-card"><div class="stat-num" id="stat-cards">-</div><div class="stat-label">卡密总数</div></div>
           <div class="stat-card"><div class="stat-num" id="stat-used-cards">-</div><div class="stat-label">已用卡密</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-emby-movies">-</div><div class="stat-label">Emby 电影</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-emby-series">-</div><div class="stat-label">Emby 剧集</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-emby-episodes">-</div><div class="stat-label">Emby 集数</div></div>
         </div>
       </div>
     </div>
@@ -126,6 +129,40 @@
           <input type="text" id="cfg-site-title" placeholder="Emby 会员中心">
         </div>
         <button class="btn" id="cfg-title-btn">保存标题</button>
+      </div>
+      <div class="card">
+        <div class="card-title">积分与邀请设置</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>每日签到最少积分</label>
+            <input type="number" id="cfg-checkin-min" min="0" value="1">
+          </div>
+          <div class="form-group">
+            <label>每日签到最多积分</label>
+            <input type="number" id="cfg-checkin-max" min="0" value="10">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>兑换所需积分</label>
+            <input type="number" id="cfg-exchange-cost" min="1" value="100">
+          </div>
+          <div class="form-group">
+            <label>兑换会员天数</label>
+            <input type="number" id="cfg-exchange-days" min="1" value="30">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>邀请注册奖励积分</label>
+            <input type="number" id="cfg-invite-register" min="0" value="20">
+          </div>
+          <div class="form-group">
+            <label>邀请用户成为会员奖励积分</label>
+            <input type="number" id="cfg-invite-member" min="0" value="50">
+          </div>
+        </div>
+        <button class="btn" id="cfg-points-btn">保存积分设置</button>
       </div>
     </div>
   </div>

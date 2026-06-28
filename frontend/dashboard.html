@@ -62,6 +62,35 @@
       <div class="emby-info" id="emby-info-content"></div>
     </div>
 
+    <!-- 积分中心 -->
+    <div class="card" id="points-section">
+      <div class="card-title">🎁 积分中心</div>
+      <div class="status-grid">
+        <div class="status-item">
+          <div class="label">当前积分</div>
+          <div class="value active" id="points-balance">--</div>
+        </div>
+        <div class="status-item">
+          <div class="label">兑换规则</div>
+          <div class="value" id="points-exchange-rule">--</div>
+        </div>
+        <div class="status-item">
+          <div class="label">今日签到</div>
+          <div class="value" id="points-checkin-rule">--</div>
+        </div>
+      </div>
+      <div class="button-row">
+        <button class="btn btn-outline" id="points-checkin-btn">每日签到</button>
+        <button class="btn" id="points-exchange-btn">积分兑换会员</button>
+      </div>
+      <div class="server-lines-title">邀请链接</div>
+      <div class="redeem-row">
+        <input type="text" id="invite-link" readonly placeholder="加载中...">
+        <button class="btn btn-outline" id="copy-invite-btn">复制</button>
+      </div>
+      <div id="points-result" class="result-space"></div>
+    </div>
+
     <!-- 修改密码 -->
     <div class="card" id="telegram-bind-section">
       <div class="card-title">🤖 绑定 Telegram 机器人</div>

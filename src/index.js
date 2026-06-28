@@ -8,6 +8,7 @@ import { handleAdmin } from './admin.js';
 import { handleCheckConnection, handleSyncUser, handleCreateEmbyAccount, handleResetEmbyPassword } from './emby.js';
 import { handleCron } from './cron.js';
 import { handleCreateTelegramBindCode, handleTelegramWebhook, handleTelegramBindingStatus } from './telegram.js';
+import { handlePointStatus, handleDailyCheckin, handlePointExchange } from './points.js';
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
@@ -53,6 +54,11 @@ async function handleRequest(request, env) {
 
     // === 会员 ===
     if (path === '/api/member/status') return handleMemberStatus(request, env);
+
+    // === 积分 ===
+    if (path === '/api/points/status') return handlePointStatus(request, env);
+    if (path === '/api/points/checkin' && request.method === 'POST') return handleDailyCheckin(request, env);
+    if (path === '/api/points/exchange' && request.method === 'POST') return handlePointExchange(request, env);
 
     // === 卡密 ===
     if (path === '/api/card/redeem' && request.method === 'POST') return handleRedeem(request, env);

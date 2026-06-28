@@ -13,6 +13,7 @@ var currentUser = null;
           document.getElementById('admin-btn').classList.toggle('hidden', currentUser.role !== 'admin');
         }
         await loadMemberStatus();
+        await loadPointsStatus();
         await loadTelegramBindingStatus();
       } catch (e) {
         window.location.href = '/login';
@@ -214,6 +215,68 @@ var currentUser = null;
         this.disabled = false;
         this.textContent = '激活账号';
       }
+    });
+
+    async function loadPointsStatus() {
+      try {
+        var data = await API.get('/api/points/status');
+        var cfg = data.config || {};
+        document.getElementById('points-balance').textContent = (data.points && data.points.balance) || 0;
+        document.getElementById('points-exchange-rule').textContent = (cfg.points_exchange_cost || 100) + ' 积分 = ' + (cfg.points_exchange_days || 30) + ' 天';
+        document.getElementById('points-checkin-rule').textContent = (cfg.points_checkin_min || 1) + '-' + (cfg.points_checkin_max || 10) + ' 积分';
+        document.getElementById('invite-link').value = data.inviteUrl || '';
+      } catch (e) {
+        console.error('loadPointsStatus error', e);
+      }
+    }
+
+    document.getElementById('points-checkin-btn').addEventListener('click', async function() {
+      var resultEl = document.getElementById('points-result');
+      resultEl.innerHTML = '';
+      this.disabled = true;
+      this.textContent = '签到中...';
+      try {
+        var data = await API.post('/api/points/checkin', {});
+        resultEl.innerHTML = '<div class="result-success">✅ ' + escapeHTML(data.message || '签到成功') + '</div>';
+        await loadPointsStatus();
+      } catch (e) {
+        resultEl.innerHTML = '<div class="result-error">❌ ' + escapeHTML(e.message) + '</div>';
+      } finally {
+        this.disabled = false;
+        this.textContent = '每日签到';
+      }
+    });
+
+    document.getElementById('points-exchange-btn').addEventListener('click', async function() {
+      if (!confirm('确定使用积分兑换会员天数吗？')) return;
+      var resultEl = document.getElementById('points-result');
+      resultEl.innerHTML = '';
+      this.disabled = true;
+      this.textContent = '兑换中...';
+      try {
+        var data = await API.post('/api/points/exchange', {});
+        resultEl.innerHTML = '<div class="result-success">✅ ' + escapeHTML(data.message || '兑换成功') + '</div>';
+        await loadPointsStatus();
+        await loadMemberStatus();
+      } catch (e) {
+        resultEl.innerHTML = '<div class="result-error">❌ ' + escapeHTML(e.message) + '</div>';
+      } finally {
+        this.disabled = false;
+        this.textContent = '积分兑换会员';
+      }
+    });
+
+    document.getElementById('copy-invite-btn').addEventListener('click', function() {
+      var input = document.getElementById('invite-link');
+      var value = input.value;
+      if (!value) return;
+      navigator.clipboard.writeText(value).then(function() {
+        showToast('邀请链接已复制', 'success');
+      }).catch(function() {
+        input.select();
+        document.execCommand('copy');
+        showToast('邀请链接已复制', 'success');
+      });
     });
 
     async function loadTelegramBindingStatus() {

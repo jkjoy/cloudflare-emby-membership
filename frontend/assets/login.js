@@ -9,6 +9,15 @@
       });
     });
 
+    // 邀请码自动填充
+    const inviteParam = new URLSearchParams(window.location.search).get('invite') || '';
+    if (inviteParam) {
+      const inviteInput = document.getElementById('reg-invite-code');
+      if (inviteInput) inviteInput.value = inviteParam;
+      const registerTab = document.querySelector('.tab[data-tab="register"]');
+      if (registerTab) registerTab.click();
+    }
+
     // 登录
     document.getElementById('login-btn').addEventListener('click', async function() {
       const username = document.getElementById('login-username').value.trim();
@@ -40,6 +49,7 @@
       const password = document.getElementById('reg-password').value;
       const confirm = document.getElementById('reg-confirm').value;
       const email = document.getElementById('reg-email').value.trim();
+      const inviteCode = document.getElementById('reg-invite-code').value.trim();
       const errorEl = document.getElementById('reg-error');
       if (!username || !password || !confirm) {
         errorEl.textContent = '请填写所有必填项';
@@ -59,7 +69,7 @@
       this.disabled = true;
       this.textContent = '注册中...';
       try {
-        await API.post('/api/auth/register', { username, password, email: email || undefined });
+        await API.post('/api/auth/register', { username, password, email: email || undefined, inviteCode: inviteCode || undefined });
         showToast('注册成功，请登录', 'success');
         // 切换到登录 tab
         document.querySelectorAll('.tab')[1].classList.remove('active');
