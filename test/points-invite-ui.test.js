@@ -31,6 +31,7 @@ describe('points and invite feature wiring', () => {
     expect(dashboard).toContain("API.post('/api/points/checkin'");
     expect(dashboard).toContain("API.post('/api/points/exchange'");
     expect(dashboard).toContain('id="invite-link"');
+    expect(readFileSync('./src/points.js', 'utf-8')).toContain('siteBaseUrl');
     expect(login).toContain('id="reg-invite-code"');
     expect(login).toContain('new URLSearchParams(window.location.search).get');
   });
@@ -44,6 +45,7 @@ describe('points and invite feature wiring', () => {
     expect(adminHtml).toContain('id="stat-emby-series"');
     expect(adminHtml).toContain('id="stat-emby-episodes"');
     expect(adminHtml).toContain('id="cfg-checkin-min"');
+    expect(adminHtml).toContain('id="cfg-site-base-url"');
     expect(adminHtml).toContain('id="cfg-exchange-cost"');
     expect(adminHtml).toContain('id="cfg-invite-member"');
     expect(adminJs).toContain("API.get('/api/admin/overview'");

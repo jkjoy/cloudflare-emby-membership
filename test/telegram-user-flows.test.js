@@ -20,7 +20,7 @@ function createDb() {
     checkins: [],
     inviteCodes: [{ user_id: 42, invite_code: 'INVITE42' }],
     pointTx: [],
-    config: { emby_server_lines: '主线路|https://emby.example.com', emby_base_url: 'https://emby.example.com', emby_api_key: 'test-api-key' },
+    config: { emby_server_lines: '主线路|https://emby.example.com', emby_base_url: 'https://emby.example.com', emby_api_key: 'test-api-key', siteBaseUrl: 'https://vip.example.com' },
   };
   return {
     state,
@@ -169,6 +169,7 @@ describe('Telegram user flows', () => {
     expect(texts).toContain('签到成功');
     expect(texts).toContain('兑换成功');
     expect(texts).toContain('邀请链接');
+    expect(texts).toContain('https://vip.example.com/login.html?invite=INVITE42');
     expect(texts).toContain('INVITE42');
     expect(db.state.memberships.some(m => m.source === 'points_exchange')).toBe(true);
   });

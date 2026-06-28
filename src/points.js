@@ -126,6 +126,24 @@ export async function rewardInviteMembership(db, inviteeUserId) {
   return invite;
 }
 
+function normalizeSiteBaseUrl(value) {
+  if (!value) return '';
+  try {
+    const url = new URL(String(value).trim());
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    return url.origin;
+  } catch {
+    return '';
+  }
+}
+
+async function getInviteBaseUrl(db, request) {
+  const configured = normalizeSiteBaseUrl((await getConfig(db, 'siteBaseUrl'))?.value || '');
+  if (configured) return configured;
+  const url = new URL(request.url);
+  return url.origin;
+}
+
 export async function handlePointStatus(request, env) {
   const userId = request.session.userId;
   const [balance, config, inviteCode, active] = await Promise.all([
@@ -134,8 +152,8 @@ export async function handlePointStatus(request, env) {
     getOrCreateInviteCode(env.DB, userId),
     getActiveMembership(env.DB, userId),
   ]);
-  const url = new URL(request.url);
-  const inviteUrl = `${url.origin}/login.html?invite=${encodeURIComponent(inviteCode)}`;
+  const baseUrl = await getInviteBaseUrl(env.DB, request);
+  const inviteUrl = `${baseUrl}/login.html?invite=${encodeURIComponent(inviteCode)}`;
   return json({ ok: true, points: balance, config, inviteCode, inviteUrl, isMember: !!active });
 }
 

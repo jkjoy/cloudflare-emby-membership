@@ -243,6 +243,7 @@ var currentUser = null;
         if (cfg.emby_api_key || cfg.apiKey) document.getElementById('cfg-api-key').value = cfg.emby_api_key || cfg.apiKey;
         if (cfg.emby_server_lines) document.getElementById('cfg-server-lines').value = cfg.emby_server_lines;
         if (cfg.siteTitle) document.getElementById('cfg-site-title').value = cfg.siteTitle;
+        if (cfg.siteBaseUrl) document.getElementById('cfg-site-base-url').value = cfg.siteBaseUrl;
         if (cfg.points_checkin_min) document.getElementById('cfg-checkin-min').value = cfg.points_checkin_min;
         if (cfg.points_checkin_max) document.getElementById('cfg-checkin-max').value = cfg.points_checkin_max;
         if (cfg.points_exchange_cost) document.getElementById('cfg-exchange-cost').value = cfg.points_exchange_cost;
@@ -294,16 +295,17 @@ var currentUser = null;
 
     document.getElementById('cfg-title-btn').addEventListener('click', async function() {
       var title = document.getElementById('cfg-site-title').value.trim();
+      var siteBaseUrl = document.getElementById('cfg-site-base-url').value.trim();
       this.disabled = true;
       this.textContent = '保存中...';
       try {
-        await API.post('/api/admin/config', { siteTitle: title });
-        showToast('标题已更新', 'success');
+        await API.post('/api/admin/config', { siteTitle: title, siteBaseUrl: siteBaseUrl });
+        showToast('网站设置已更新', 'success');
       } catch (e) {
         showToast(e.message, 'error');
       } finally {
         this.disabled = false;
-        this.textContent = '保存标题';
+        this.textContent = '保存网站设置';
       }
     });
 

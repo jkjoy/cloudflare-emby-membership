@@ -97,12 +97,22 @@ export async function handleAdminGetConfig(request, env) {
 }
 
 // 更新系统配置
+function validateSiteBaseUrl(value) {
+  const url = new URL(value);
+  if (!['http:', 'https:'].includes(url.protocol)) throw new Error('网站地址仅支持 HTTP/HTTPS');
+  return url.origin;
+}
+
 export async function handleAdminSetConfig(request, env) {
   const config = await parseBody(request);
   for (const [key, value] of Object.entries(config)) {
     if (typeof value === 'string' && value.trim()) {
       if ((key === 'emby_api_key' || key === 'apiKey') && isMaskedSecret(value.trim())) continue;
-      const cleaned = key === 'emby_base_url' || key === 'embyUrl' ? validateEmbyBaseUrl(value.trim()) : value.trim();
+      const cleaned = key === 'emby_base_url' || key === 'embyUrl'
+        ? validateEmbyBaseUrl(value.trim())
+        : key === 'siteBaseUrl'
+          ? validateSiteBaseUrl(value.trim())
+          : value.trim();
       await setConfig(env.DB, key, cleaned);
     }
   }
