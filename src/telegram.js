@@ -2,6 +2,7 @@ import { json } from './utils.js';
 import { generateTelegramBindCode, consumeTelegramBindCode, getTelegramBindingByTelegramUser, getTelegramBindingByUserId } from './telegramStorage.js';
 import { getUserWithMembership, getCardByCode, useCard, addMembership, getUserById, getConfig } from './db.js';
 import { parseServerLines, handleCreateEmbyAccount, handleResetEmbyPassword } from './emby.js';
+import { handleDailyCheckin, handlePointExchange, handlePointStatus } from './points.js';
 
 function telegramApiUrl(env, method) {
   return `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`;
@@ -48,6 +49,8 @@ export function mainMenuKeyboard(isBound = false) {
   return {
     inline_keyboard: [
       [{ text: '查询会员', callback_data: 'status' }, { text: '查询 Emby 账号', callback_data: 'emby_account' }],
+      [{ text: '签到', callback_data: 'points_checkin' }, { text: '查看积分', callback_data: 'points_status' }],
+      [{ text: '积分兑换会员', callback_data: 'points_exchange' }, { text: '邀请链接', callback_data: 'invite_link' }],
       [{ text: '兑换卡密', callback_data: 'redeem' }, { text: '激活 Emby', callback_data: 'activate' }],
       [{ text: '查看线路', callback_data: 'lines' }, { text: '重置 Emby 密码', callback_data: 'reset_password' }],
     ],
@@ -124,6 +127,54 @@ async function redeemCode(env, chatId, userId, code, runtime) {
   await sendTelegramMessage(env, chatId, `兑换成功！会员有效期至 ${result.expire}`, runtime, mainMenuKeyboard(true));
 }
 
+function telegramInternalRequest(env, chatId, userId, path) {
+  const baseUrl = env.PUBLIC_BASE_URL || 'https://emby-membership.jkjoy.workers.dev';
+  const request = new Request(baseUrl.replace(/\/+$/, '') + path, {
+    headers: { 'CF-Connecting-IP': `telegram:${chatId}` },
+  });
+  request.session = { userId };
+  return request;
+}
+
+async function sendPointStatus(env, chatId, userId, runtime) {
+  const res = await handlePointStatus(telegramInternalRequest(env, chatId, userId, '/api/points/status'), env);
+  const body = await res.json();
+  if (!body.ok) return sendTelegramMessage(env, chatId, body.message || '查询积分失败', runtime, mainMenuKeyboard(true));
+  const cfg = body.config || {};
+  const text = [
+    `当前积分：${body.points?.balance || 0}`,
+    `签到范围：${cfg.points_checkin_min || 1}-${cfg.points_checkin_max || 10} 积分/天`,
+    `兑换规则：${cfg.points_exchange_cost || 100} 积分 = ${cfg.points_exchange_days || 30} 天会员`,
+  ].join('\n');
+  return sendTelegramMessage(env, chatId, text, runtime, mainMenuKeyboard(true));
+}
+
+async function sendPointCheckin(env, chatId, userId, runtime) {
+  const res = await handleDailyCheckin(telegramInternalRequest(env, chatId, userId, '/api/points/checkin'), env);
+  const body = await res.json();
+  const text = body.ok
+    ? `${body.message}\n当前积分：${body.balance}`
+    : (body.message || '签到失败');
+  return sendTelegramMessage(env, chatId, text, runtime, mainMenuKeyboard(true));
+}
+
+async function sendPointExchange(env, chatId, userId, runtime) {
+  const res = await handlePointExchange(telegramInternalRequest(env, chatId, userId, '/api/points/exchange'), env);
+  const body = await res.json();
+  const text = body.ok
+    ? `${body.message}\n消耗积分：${body.spent}\n剩余积分：${body.balance}\n会员有效期至：${body.expireDate || '--'}`
+    : (body.message || '兑换失败');
+  return sendTelegramMessage(env, chatId, text, runtime, mainMenuKeyboard(true));
+}
+
+async function sendInviteLink(env, chatId, userId, runtime) {
+  const res = await handlePointStatus(telegramInternalRequest(env, chatId, userId, '/api/points/status'), env);
+  const body = await res.json();
+  if (!body.ok) return sendTelegramMessage(env, chatId, body.message || '获取邀请链接失败', runtime, mainMenuKeyboard(true));
+  const text = `邀请链接：\n${body.inviteUrl}\n\n邀请码：${body.inviteCode}`;
+  return sendTelegramMessage(env, chatId, text, runtime, mainMenuKeyboard(true));
+}
+
 async function resetEmbyPasswordForTelegram(env, chatId, userId, runtime) {
   const request = new Request('https://telegram.local/reset-emby-password', {
     headers: { 'CF-Connecting-IP': `telegram:${chatId}` },
@@ -139,6 +190,10 @@ async function handleBoundCallback(callback, binding, env, runtime) {
   await answerCallback(env, callback.id, runtime);
   if (callback.data === 'status') return sendStatus(env, chatId, binding.user_id, runtime);
   if (callback.data === 'emby_account') return sendEmbyAccount(env, chatId, binding.user_id, runtime);
+  if (callback.data === 'points_status') return sendPointStatus(env, chatId, binding.user_id, runtime);
+  if (callback.data === 'points_checkin') return sendPointCheckin(env, chatId, binding.user_id, runtime);
+  if (callback.data === 'points_exchange') return sendPointExchange(env, chatId, binding.user_id, runtime);
+  if (callback.data === 'invite_link') return sendInviteLink(env, chatId, binding.user_id, runtime);
   if (callback.data === 'lines') return sendLines(env, chatId, binding.user_id, runtime);
   if (callback.data === 'redeem') {
     await setState(env, chatId, callback.from.id, { action: 'redeem', userId: binding.user_id });
